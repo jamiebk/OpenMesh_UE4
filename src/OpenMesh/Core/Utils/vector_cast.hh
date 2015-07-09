@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -57,8 +64,6 @@
 #include <OpenMesh/Core/System/config.h>
 #include <OpenMesh/Core/Utils/vector_traits.hh>
 #include <OpenMesh/Core/Utils/GenProg.hh>
-#include <iostream>
-#include <algorithm>
 #include <OpenMesh/Core/Geometry/VectorT.hh>
 
 
@@ -77,57 +82,33 @@ namespace OpenMesh {
 
 //-----------------------------------------------------------------------------
 
-
-template <typename src_t, typename dst_t>
-inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<1> )
+template <typename src_t, typename dst_t, int n>
+inline void vector_cast( const src_t &_src, dst_t &_dst, GenProg::Int2Type<n> )
 {
-  _dst[0] = _src[0];
+  assert_compile(vector_traits<dst_t>::size_ <= vector_traits<src_t>::size_)
+  vector_cast(_src,_dst, GenProg::Int2Type<n-1>());
+  _dst[n-1] = static_cast<typename vector_traits<dst_t>::value_type >(_src[n-1]);
 }
 
 template <typename src_t, typename dst_t>
-inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<2> )
+inline void vector_cast( const src_t &_src, dst_t &_dst, GenProg::Int2Type<0> )
 {
-  _dst[0] = _src[0];
-  _dst[1] = _src[1];
+}
+
+
+template <typename src_t, typename dst_t, int n>
+inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<n> )
+{
+  assert_compile(vector_traits<dst_t>::size_ <= vector_traits<src_t>::size_)
+  vector_copy(_src,_dst, GenProg::Int2Type<n-1>());
+  _dst[n-1] = _src[n-1];
 }
 
 template <typename src_t, typename dst_t>
-inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<3> )
+inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<0> )
 {
-  _dst[0] = _src[0];
-  _dst[1] = _src[1];
-  _dst[2] = _src[2];
 }
 
-template <typename src_t, typename dst_t>
-inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<4> )
-{
-  _dst[0] = _src[0];
-  _dst[1] = _src[1];
-  _dst[2] = _src[2];
-  _dst[3] = _src[3];
-}
-
-template <typename src_t, typename dst_t>
-inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<5> )
-{
-  _dst[0] = _src[0];
-  _dst[1] = _src[1];
-  _dst[2] = _src[2];
-  _dst[3] = _src[3];
-  _dst[4] = _src[4];
-}
-
-template <typename src_t, typename dst_t>
-inline void vector_copy( const src_t &_src, dst_t &_dst, GenProg::Int2Type<6> )
-{
-  _dst[0] = _src[0];
-  _dst[1] = _src[1];
-  _dst[2] = _src[2];
-  _dst[3] = _src[3];
-  _dst[4] = _src[4];
-  _dst[5] = _src[5];
-}
 
 
 //-----------------------------------------------------------------------------
@@ -141,7 +122,7 @@ struct vector_caster
   inline static return_type cast(const src_t& _src)
   {
     dst_t dst;
-    vector_copy(_src, dst, GenProg::Int2Type<vector_traits<dst_t>::size_>());
+    vector_cast(_src, dst, GenProg::Int2Type<vector_traits<dst_t>::size_>());
     return dst;
   }
 };

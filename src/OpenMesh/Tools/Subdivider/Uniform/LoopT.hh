@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -58,6 +65,7 @@
 #include <OpenMesh/Core/System/config.hh>
 #include <OpenMesh/Tools/Subdivider/Uniform/SubdividerT.hh>
 #include <OpenMesh/Core/Utils/vector_cast.hh>
+#include <OpenMesh/Core/Utils/Property.hh>
 // -------------------- STL
 #include <vector>
 #if defined(OM_CC_MIPS)
@@ -159,13 +167,13 @@ protected:
       if(_update_points) {
         // compute new positions for old vertices
         for (vit = _m.vertices_begin(); vit != _m.vertices_end(); ++vit) {
-          smooth(_m, vit.handle());
+          smooth(_m, *vit);
         }
       }
 
       // Compute position for new vertices and store them in the edge property
       for (eit=_m.edges_begin(); eit != _m.edges_end(); ++eit)
-        compute_midpoint( _m, eit.handle() );
+        compute_midpoint( _m, *eit );
 
       // Split each edge at midpoint and store precomputed positions (stored in
       // edge property ep_pos_) in the vertex property vp_pos_;
@@ -173,7 +181,7 @@ protected:
       // Attention! Creating new edges, hence make sure the loop ends correctly.
       e_end = _m.edges_end();
       for (eit=_m.edges_begin(); eit != e_end; ++eit)
-        split_edge(_m, eit.handle() );
+        split_edge(_m, *eit );
 
 
       // Commit changes in topology and reconsitute consistency
@@ -181,13 +189,13 @@ protected:
       // Attention! Creating new faces, hence make sure the loop ends correctly.
       f_end   = _m.faces_end();
       for (fit = _m.faces_begin(); fit != f_end; ++fit)
-        split_face(_m, fit.handle() );
+        split_face(_m, *fit );
 
       if(_update_points) {
         // Commit changes in geometry
         for ( vit  = _m.vertices_begin();
             vit != _m.vertices_end(); ++vit) {
-            _m.set_point(vit, _m.property( vp_pos_, vit ) );
+            _m.set_point(*vit, _m.property( vp_pos_, *vit ) );
         }
       }
 
@@ -436,13 +444,13 @@ private: // geometry helper
       size_t                            valence(0);
 
       // Calculate Valence and sum up neighbour points
-      for (vvit=_m.vv_iter(_vh); vvit; ++vvit) {
+      for (vvit=_m.vv_iter(_vh); vvit.is_valid(); ++vvit) {
         ++valence;
-        pos += vector_cast< Vec >( _m.point(vvit) );
+        pos += vector_cast< Vec >( _m.point(*vvit) );
       }
       pos *= weights_[valence].second; // alpha(n)/n * Sum q, q in one-ring of p
       pos += weights_[valence].first
-           * vector_cast<Vec>(_m.point(_vh)); // + (1-a)*p
+          * vector_cast<Vec>(_m.point(_vh)); // + (1-a)*p
     }
 
     _m.property( vp_pos_, _vh ) = pos;

@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -73,14 +80,14 @@ uint PolyMeshT<Kernel>::find_feature_edges(Scalar _angle_tresh)
   uint n_feature_edges = 0;
   for (EdgeIter e_it = Kernel::edges_begin(); e_it != Kernel::edges_end(); ++e_it)
   {
-    if (fabs(calc_dihedral_angle(e_it)) > _angle_tresh)
+    if (fabs(calc_dihedral_angle(*e_it)) > _angle_tresh)
     {//note: could be optimized by comparing cos(dih_angle) vs. cos(_angle_tresh)
-      status(e_it).set_feature(true);
+      this->status(*e_it).set_feature(true);
       n_feature_edges++;
     }
     else
     {
-      status(e_it).set_feature(false);
+      this->status(*e_it).set_feature(false);
     }
   }
   return n_feature_edges;
@@ -96,34 +103,39 @@ calc_face_normal(FaceHandle _fh) const
   assert(this->halfedge_handle(_fh).is_valid());
   ConstFaceVertexIter fv_it(this->cfv_iter(_fh));
   
-  Point p0 = this->point(fv_it);
-  Point p0i = p0; //save point of vertex 0
+  Point p0 = this->point(*fv_it);
+  const Point p0i = p0; //save point of vertex 0
+  // Safeguard for 1-gons
+  if (!(++fv_it).is_valid()) return Normal(0, 0, 0);
+
+  Point p1 = this->point(*fv_it);
+  const Point p1i = p1; //save point of vertex 1
   ++fv_it;
-  Point p1 = this->point(fv_it);
-  Point p1i = p1; //save point of vertex 1
-  ++fv_it;
-  Point p2;
+  // Safeguard for 2-gons
+  if (!(++fv_it).is_valid()) return Normal(0, 0, 0);
   
   //calculate area-weighted average normal of polygon's ears
   Normal n(0,0,0);
-  for(; fv_it; ++fv_it)
+  for(; fv_it.is_valid(); ++fv_it)
   {
-    p2 = this->point(fv_it);
-    n += vector_cast<Normal>(calc_face_normal(p0, p1, p2)); 
+    const Point p2 = this->point(*fv_it);
+    n += vector_cast<Normal>(calc_face_normal(p0, p1, p2));
     p0 = p1;
     p1 = p2;
   }
   
   //two additional steps since we started at vertex 2, not 0
-  n += vector_cast<Normal>(calc_face_normal(p0i, p0, p1)); 
-  n += vector_cast<Normal>(calc_face_normal(p1i, p0i, p1));
+  n += vector_cast<Normal>(calc_face_normal(p0, p1, p0i));
+  n += vector_cast<Normal>(calc_face_normal(p1, p0i, p1i));
 
-  typename Normal::value_type norm = n.length();
+  const typename vector_traits<Normal>::value_type norm = n.length();
   
   // The expression ((n *= (1.0/norm)),n) is used because the OpenSG
   // vector class does not return self after component-wise
   // self-multiplication with a scalar!!!
-  return (norm != typename Normal::value_type(0)) ? ((n *= (typename Normal::value_type(1)/norm)),n) : Normal(0,0,0);
+  return (norm != typename vector_traits<Normal>::value_type(0))
+          ? ((n *= (typename vector_traits<Normal>::value_type(1)/norm)), n)
+          : Normal(0, 0, 0);
 }
 
 //-----------------------------------------------------------------------------
@@ -144,18 +156,18 @@ calc_face_normal(const Point& _p0,
   Normal p1p2(vector_cast<Normal>(_p2));  p1p2 -= vector_cast<Normal>(_p1);
 
   Normal n    = cross(p1p2, p1p0);
-  typename Normal::value_type norm = n.length();
+  typename vector_traits<Normal>::value_type norm = n.length();
 
   // The expression ((n *= (1.0/norm)),n) is used because the OpenSG
   // vector class does not return self after component-wise
   // self-multiplication with a scalar!!!
-  return (norm != typename Normal::value_type(0)) ? ((n *= (typename Normal::value_type(1)/norm)),n) : Normal(0,0,0);
+  return (norm != typename vector_traits<Normal>::value_type(0)) ? ((n *= (typename vector_traits<Normal>::value_type(1)/norm)),n) : Normal(0,0,0);
 #else
   Point p1p0 = _p0;  p1p0 -= _p1;
   Point p1p2 = _p2;  p1p2 -= _p1;
 
   Normal n = vector_cast<Normal>(cross(p1p2, p1p0));
-  typename Normal::value_type norm = n.length();
+  typename vector_traits<Normal>::value_type norm = n.length();
 
   return (norm != 0.0) ? n *= (1.0/norm) : Normal(0,0,0);
 #endif
@@ -164,17 +176,19 @@ calc_face_normal(const Point& _p0,
 //-----------------------------------------------------------------------------
 
 template <class Kernel>
-void
+typename PolyMeshT<Kernel>::Point
 PolyMeshT<Kernel>::
-calc_face_centroid(FaceHandle _fh, Point& _pt) const
+calc_face_centroid(FaceHandle _fh) const
 {
+  Point _pt;
   _pt.vectorize(0);
-  uint valence = 0;
-  for (ConstFaceVertexIter cfv_it = this->cfv_iter(_fh); cfv_it; ++cfv_it, ++valence)
+  Scalar valence = 0.0;
+  for (ConstFaceVertexIter cfv_it = this->cfv_iter(_fh); cfv_it.is_valid(); ++cfv_it, valence += 1.0)
   {
-    _pt += this->point(cfv_it);
+    _pt += this->point(*cfv_it);
   }
   _pt /= valence;
+  return _pt;
 }
 //-----------------------------------------------------------------------------
 
@@ -205,7 +219,7 @@ update_face_normals()
   FaceIter f_it(Kernel::faces_begin()), f_end(Kernel::faces_end());
 
   for (; f_it != f_end; ++f_it)
-    this->set_normal(f_it.handle(), calc_face_normal(f_it.handle()));
+    this->set_normal(*f_it, calc_face_normal(*f_it));
 }
 
 
@@ -220,7 +234,7 @@ update_halfedge_normals(const double _feature_angle)
   HalfedgeIter h_it(Kernel::halfedges_begin()), h_end(Kernel::halfedges_end());
 
   for (; h_it != h_end; ++h_it)
-    this->set_normal(h_it.handle(), calc_halfedge_normal(h_it.handle(), _feature_angle));
+    this->set_normal(*h_it, calc_halfedge_normal(*h_it, _feature_angle));
 }
 
 
@@ -255,14 +269,17 @@ calc_halfedge_normal(HalfedgeHandle _heh, const double _feature_angle) const
     {
       heh = Kernel::opposite_halfedge_handle(_heh);
 
-      do
-      {
-        fhs.push_back(Kernel::face_handle(heh));
+      if ( !Kernel::is_boundary(heh) ) {
+        do
+        {
 
-        heh = Kernel::prev_halfedge_handle(heh);
-        heh = Kernel::opposite_halfedge_handle(heh);
+          fhs.push_back(Kernel::face_handle(heh));
+
+          heh = Kernel::prev_halfedge_handle(heh);
+          heh = Kernel::opposite_halfedge_handle(heh);
+        }
+        while(!Kernel::is_boundary(heh) && !is_estimated_feature_edge(heh, _feature_angle));
       }
-      while(!Kernel::is_boundary(heh) && !is_estimated_feature_edge(heh, _feature_angle));
     }
 
     Normal n(0,0,0);
@@ -317,7 +334,7 @@ calc_vertex_normal(VertexHandle _vh) const
   calc_vertex_normal_fast(_vh,n);
 
   Scalar norm = n.length();
-  if (norm != 0.0) n *= (1.0/norm);
+  if (norm != 0.0) n *= (Scalar(1.0)/norm);
 
   return n;
 }
@@ -328,8 +345,8 @@ void PolyMeshT<Kernel>::
 calc_vertex_normal_fast(VertexHandle _vh, Normal& _n) const
 {
   _n.vectorize(0.0);
-  for (ConstVertexFaceIter vf_it=this->cvf_iter(_vh); vf_it; ++vf_it)
-    _n += this->normal(vf_it.handle());
+  for (ConstVertexFaceIter vf_it = this->cvf_iter(_vh); vf_it.is_valid(); ++vf_it)
+    _n += this->normal(*vf_it);
 }
 
 //-----------------------------------------------------------------------------
@@ -338,20 +355,20 @@ void PolyMeshT<Kernel>::
 calc_vertex_normal_correct(VertexHandle _vh, Normal& _n) const
 {
   _n.vectorize(0.0);
-  ConstVertexIHalfedgeIter cvih_it = cvih_iter(_vh);
-  if (!cvih_it)
+  ConstVertexIHalfedgeIter cvih_it = this->cvih_iter(_vh);
+  if (! cvih_it.is_valid() )
   {//don't crash on isolated vertices
     return;
   }
   Normal in_he_vec;
-  calc_edge_vector(cvih_it, in_he_vec);
-  for ( ; cvih_it; ++cvih_it)
+  calc_edge_vector(*cvih_it, in_he_vec);
+  for ( ; cvih_it.is_valid(); ++cvih_it)
   {//calculates the sector normal defined by cvih_it and adds it to _n
-    if (is_boundary(cvih_it))
+    if (this->is_boundary(*cvih_it))
     {
       continue;
     }
-    HalfedgeHandle out_heh(next_halfedge_handle(cvih_it));
+    HalfedgeHandle out_heh(this->next_halfedge_handle(*cvih_it));
     Normal out_he_vec;
     calc_edge_vector(out_heh, out_he_vec);
     _n += cross(in_he_vec, out_he_vec);//sector area is taken into account
@@ -369,13 +386,13 @@ calc_vertex_normal_loop(VertexHandle _vh, Normal& _n) const
                   LoopSchemeMaskDoubleSingleton::Instance();
 
   Normal t_v(0.0,0.0,0.0), t_w(0.0,0.0,0.0);
-  unsigned int vh_val = valence(_vh);
+  unsigned int vh_val = this->valence(_vh);
   unsigned int i = 0;
-  for (ConstVertexOHalfedgeIter cvoh_it = cvoh_iter(_vh); cvoh_it; ++cvoh_it, ++i)
+  for (ConstVertexOHalfedgeIter cvoh_it = this->cvoh_iter(_vh); cvoh_it.is_valid(); ++cvoh_it, ++i)
   {
-    VertexHandle r1_v(to_vertex_handle(cvoh_it));
-    t_v += (typename Point::value_type)(loop_scheme_mask__.tang0_weight(vh_val, i))*this->point(r1_v);
-    t_w += (typename Point::value_type)(loop_scheme_mask__.tang1_weight(vh_val, i))*this->point(r1_v);
+    VertexHandle r1_v( this->to_vertex_handle(*cvoh_it) );
+    t_v += (typename vector_traits<Point>::value_type)(loop_scheme_mask__.tang0_weight(vh_val, i))*this->point(r1_v);
+    t_w += (typename vector_traits<Point>::value_type)(loop_scheme_mask__.tang1_weight(vh_val, i))*this->point(r1_v);
   }
   _n = cross(t_w, t_v);//hack: should be cross(t_v, t_w), but then the normals are reversed?
 }
@@ -391,7 +408,7 @@ update_vertex_normals()
   VertexIter  v_it(Kernel::vertices_begin()), v_end(Kernel::vertices_end());
 
   for (; v_it!=v_end; ++v_it)
-    this->set_normal(v_it.handle(), calc_vertex_normal(v_it.handle()));
+    this->set_normal(*v_it, calc_vertex_normal(*v_it));
 }
 
 //=============================================================================

@@ -36,8 +36,15 @@ endif()
 
 
 if (WIN32)
-  # OpenMesh has no dll exports so we have to build a static library on windows
-  acg_add_library (OpenMeshCore STATIC ${sources} ${headers})
+
+  if ( OPENMESH_BUILD_SHARED )
+    add_definitions( -DOPENMESHDLL -DBUILDOPENMESHDLL)
+    acg_add_library (OpenMeshCore SHARED ${sources} ${headers})
+  else()
+    # OpenMesh has no dll exports so we have to build a static library on windows
+    acg_add_library (OpenMeshCore STATIC ${sources} ${headers})
+  endif()
+
 else ()
   acg_add_library (OpenMeshCore SHAREDANDSTATIC ${sources} ${headers})
   set_target_properties (OpenMeshCore PROPERTIES VERSION ${OPENMESH_VERSION_MAJOR}.${OPENMESH_VERSION_MINOR}
@@ -113,13 +120,13 @@ install(DIRECTORY .
 #install Template cc files (required by headers)
 install(DIRECTORY . 
 	DESTINATION include/OpenMesh/Core
-        FILES_MATCHING 
+    FILES_MATCHING 
 	PATTERN "*T.cc"
-        PATTERN "CVS" EXCLUDE
-        PATTERN ".svn" EXCLUDE
+    PATTERN "CVS" EXCLUDE
+    PATTERN ".svn" EXCLUDE
 	PATTERN "tmp" EXCLUDE
 	PATTERN "Templates" EXCLUDE
-        PATTERN "Debian*" EXCLUDE)
+    PATTERN "Debian*" EXCLUDE)
 
 #install the config file
 install(FILES System/config.h DESTINATION include/OpenMesh/Core/System)
@@ -130,14 +137,14 @@ install(DIRECTORY IO/
 	FILES_MATCHING
 	PATTERN "*.inl"         
 	PATTERN "CVS" EXCLUDE
-        PATTERN ".svn" EXCLUDE
-        PATTERN "reader" EXCLUDE
-        PATTERN "writer" EXCLUDE
-        PATTERN "importer" EXCLUDE
-        PATTERN "exporter" EXCLUDE
-        PATTERN "tmp" EXCLUDE
-        PATTERN "Debian*" EXCLUDE )
-
+    PATTERN ".svn" EXCLUDE
+    PATTERN "reader" EXCLUDE
+    PATTERN "writer" EXCLUDE
+    PATTERN "importer" EXCLUDE
+    PATTERN "exporter" EXCLUDE
+    PATTERN "tmp" EXCLUDE
+    PATTERN "Debian*" EXCLUDE )
+    
 endif ()
 
 

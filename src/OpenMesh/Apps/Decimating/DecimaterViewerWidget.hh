@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -103,17 +110,24 @@ public:
   typedef MeshViewerWidget inherited_t;
 
   typedef Decimater::DecimaterT<mesh_t>                decimater_t;  
-  typedef Decimater::ModQuadricT< decimater_t >        mod_quadric_t;
-  typedef Decimater::ModNormalFlippingT< decimater_t > mod_nf_t;
+  typedef Decimater::ModQuadricT< mesh_t >::Handle        mod_quadric_t;
+  typedef Decimater::ModNormalFlippingT< mesh_t >::Handle mod_nf_t;
 
   // object types
+#if __cplusplus > 199711L or __GXX_EXPERIMENTAL_CXX0X__
+  typedef std::unique_ptr< decimater_t   >   decimater_o;
+#else
   typedef std::auto_ptr< decimater_t   >   decimater_o;
-  typedef std::auto_ptr< mod_quadric_t >   mod_quadric_o;
-  typedef std::auto_ptr< mod_nf_t      >   mod_nf_o;
+#endif
+
+
 
   /// default constructor
   DecimaterViewerWidget(QWidget* _parent=0)
-    : MeshViewerWidget(_parent), steps_(1)
+    : MeshViewerWidget(_parent),
+      animate_(false),
+      timer_(0),
+      steps_(1)
   {
     timer_ = new QTimer(this);
     
@@ -143,19 +157,12 @@ public: // inherited
     {
       std::cout << "prepare decimater" << std::endl;
 
-      // to be compatible with gcc 2.95.3
-      {
-        decimater_o  tmp( new decimater_t  ( mesh() ) );
-        decimater_ = tmp;
-      }
-      {
-        mod_quadric_o  tmp( new mod_quadric_t( *decimater_ ) );
-        mod_quadric_ = tmp;
-      }
-      {
-        mod_nf_o       tmp( new mod_nf_t     ( *decimater_ ) );
-        mod_nf_      = tmp;
-      }
+      decimater_ = decimater_o ( new decimater_t  ( mesh() ) );
+
+      decimater_->add(mod_quadric_);
+      decimater_->module(mod_quadric_).set_binary(false);
+
+      decimater_->add(mod_nf_);
 
       decimater_->initialize();
     }
@@ -177,8 +184,8 @@ private:
   QTimer           *timer_;
 
   decimater_o       decimater_;  
-  mod_quadric_o     mod_quadric_;
-  mod_nf_o          mod_nf_;
+  mod_quadric_t     mod_quadric_;
+  mod_nf_t          mod_nf_;
 
   size_t            steps_;
 };

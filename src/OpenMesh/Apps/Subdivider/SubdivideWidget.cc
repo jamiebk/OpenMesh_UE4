@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -72,11 +79,10 @@
 #include <OpenMesh/Tools/Subdivider/Uniform/Sqrt3T.hh>
 #include <OpenMesh/Tools/Subdivider/Uniform/Sqrt3InterpolatingSubdividerLabsikGreinerT.hh>
 #include <OpenMesh/Tools/Subdivider/Uniform/ModifiedButterFlyT.hh>
+#include <OpenMesh/Tools/Subdivider/Uniform/CatmullClarkT.hh>
 
-// My stuff
 #include <OpenMesh/Apps/Subdivider/SubdivideWidget.hh>
 
-//
 
 using namespace OpenMesh::Subdivider;
 
@@ -140,7 +146,7 @@ SubdivideWidget(QWidget* _parent, const char* _name)
   
   QButtonGroup* buttonGroup = new QButtonGroup();
 
-  buttonGroup->setExclusive( TRUE );
+  buttonGroup->setExclusive( true );
 
   // insert 2 radiobuttons
   QRadioButton* radio1 = new QRadioButton( "Comp. Loop" );
@@ -149,7 +155,8 @@ SubdivideWidget(QWidget* _parent, const char* _name)
   QRadioButton* radio4 = new QRadioButton( "Sqrt(3)" );
   QRadioButton* radio5 = new QRadioButton( "Interpolating Sqrt3" );
   QRadioButton* radio6 = new QRadioButton( "Modified Butterfly" );
-  radio3->setChecked( TRUE );
+  // QRadioButton* radio7 = new QRadioButton( "Catmull Clark" ); // Disabled, as it needs a quad mesh!
+  radio3->setChecked( true );
   sel_topo_type = SOP_UniformLoop;
 
   buttonGroup->addButton(radio1, SOP_UniformCompositeLoop);
@@ -158,6 +165,7 @@ SubdivideWidget(QWidget* _parent, const char* _name)
   buttonGroup->addButton(radio4, SOP_UniformSqrt3);
   buttonGroup->addButton(radio5, SOP_UniformInterpolatingSqrt3);
   buttonGroup->addButton(radio6, SOP_ModifiedButterfly);
+  //buttonGroup->addButton(radio7, SOP_CatmullClark);
 
   vbox->addWidget(radio1);
   vbox->addWidget(radio2);
@@ -165,6 +173,7 @@ SubdivideWidget(QWidget* _parent, const char* _name)
   vbox->addWidget(radio4);
   vbox->addWidget(radio5);
   vbox->addWidget(radio6);
+  // vbox->addWidget(radio7);
 
   QObject::connect( buttonGroup, SIGNAL( buttonPressed(int) ),
                           this, SLOT( slot_select_sop(int) ) );
@@ -191,6 +200,7 @@ SubdivideWidget(QWidget* _parent, const char* _name)
   subdivider_[SOP_UniformSqrt3]              = new Uniform::Sqrt3T<Mesh>;
   subdivider_[SOP_UniformInterpolatingSqrt3] = new Uniform::InterpolatingSqrt3LGT< Mesh >;
   subdivider_[SOP_ModifiedButterfly]         = new Uniform::ModifiedButterflyT<Mesh>;
+  subdivider_[SOP_CatmullClark]              = new Uniform::CatmullClarkT<Mesh>;
 
 }
 
@@ -204,9 +214,10 @@ void SubdivideWidget::slot_select_sop(int i)
     case SOP_UniformCompositeLoop:
     case SOP_UniformCompositeSqrt3:
     case SOP_UniformLoop:
+    case SOP_UniformSqrt3:
     case SOP_UniformInterpolatingSqrt3:
     case SOP_ModifiedButterfly:
-    case SOP_UniformSqrt3:          sel_topo_type = (SOPType)i; break;
+    case SOP_CatmullClark:          sel_topo_type = (SOPType)i; break;
     default:                        sel_topo_type = SOP_Undefined;
   }
 }
@@ -264,9 +275,9 @@ void SubdivideWidget::keyPressEvent( QKeyEvent *k )
 
 void SubdivideWidget::update()
 {
-  unsigned int n_faces = viewer_widget_->mesh().n_faces();
-  unsigned int n_edges = viewer_widget_->mesh().n_edges();
-  unsigned int n_vertices = viewer_widget_->mesh().n_vertices();
+  size_t n_faces = viewer_widget_->mesh().n_faces();
+  size_t n_edges = viewer_widget_->mesh().n_edges();
+  size_t n_vertices = viewer_widget_->mesh().n_vertices();
   QString message(""), temp;
   message.append(temp.setNum(n_faces));
   message.append(" Faces, ");

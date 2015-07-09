@@ -1,41 +1,48 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
  *---------------------------------------------------------------------------*
- *  This file is part of OpenMesh.                                           *
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
- \*===========================================================================*/
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *
- *   $Revision: 448 $                                                        *
- *   $Date: 2011-11-04 13:59:37 +0100 (Fri, 04 Nov 2011) $                   *
+ *   $Revision$                                                        *
+ *   $Date$                   *
  *                                                                           *
  \*===========================================================================*/
 
@@ -60,8 +67,8 @@ namespace Decimater {
 
 //== IMPLEMENTATION ==========================================================
 
-template<class DecimaterT>
-typename ModAspectRatioT<DecimaterT>::Scalar ModAspectRatioT<DecimaterT>::aspectRatio(
+template<class MeshT>
+typename ModAspectRatioT<MeshT>::Scalar ModAspectRatioT<MeshT>::aspectRatio(
     const Point& _v0, const Point& _v1, const Point& _v2) {
   Point d0 = _v0 - _v1;
   Point d1 = _v1 - _v2;
@@ -91,60 +98,63 @@ typename ModAspectRatioT<DecimaterT>::Scalar ModAspectRatioT<DecimaterT>::aspect
 
 //-----------------------------------------------------------------------------
 
-template<class DecimaterT>
-void ModAspectRatioT<DecimaterT>::initialize() {
+template<class MeshT>
+void ModAspectRatioT<MeshT>::initialize() {
   typename Mesh::FaceIter f_it, f_end(mesh_.faces_end());
   typename Mesh::FVIter fv_it;
 
   for (f_it = mesh_.faces_begin(); f_it != f_end; ++f_it) {
-    typename Mesh::Point& p0 = mesh_.point(fv_it = mesh_.fv_iter(f_it));
-    typename Mesh::Point& p1 = mesh_.point(++fv_it);
-    typename Mesh::Point& p2 = mesh_.point(++fv_it);
+    fv_it = mesh_.fv_iter(*f_it);
+    typename Mesh::Point& p0 = mesh_.point(*fv_it);
+    typename Mesh::Point& p1 = mesh_.point(*(++fv_it));
+    typename Mesh::Point& p2 = mesh_.point(*(++fv_it));
 
-    mesh_.property(aspect_, f_it) = 1.0 / aspectRatio(p0, p1, p2);
+    mesh_.property(aspect_, *f_it) = static_cast<typename Mesh::Scalar>(1.0) / aspectRatio(p0, p1, p2);
   }
 }
 
 //-----------------------------------------------------------------------------
 
-template<class DecimaterT>
-void ModAspectRatioT<DecimaterT>::preprocess_collapse(const CollapseInfo& _ci) {
+template<class MeshT>
+void ModAspectRatioT<MeshT>::preprocess_collapse(const CollapseInfo& _ci) {
   typename Mesh::FaceHandle fh;
   typename Mesh::FVIter fv_it;
 
-  for (typename Mesh::VFIter vf_it = mesh_.vf_iter(_ci.v0); vf_it; ++vf_it) {
-    fh = vf_it.handle();
+  for (typename Mesh::VFIter vf_it = mesh_.vf_iter(_ci.v0); vf_it.is_valid(); ++vf_it) {
+    fh = *vf_it;
     if (fh != _ci.fl && fh != _ci.fr) {
-      typename Mesh::Point& p0 = mesh_.point(fv_it = mesh_.fv_iter(fh));
-      typename Mesh::Point& p1 = mesh_.point(++fv_it);
-      typename Mesh::Point& p2 = mesh_.point(++fv_it);
+      fv_it = mesh_.fv_iter(fh);
+      typename Mesh::Point& p0 = mesh_.point(*fv_it);
+      typename Mesh::Point& p1 = mesh_.point(*(++fv_it));
+      typename Mesh::Point& p2 = mesh_.point(*(++fv_it));
 
-      mesh_.property(aspect_, fh) = 1.0 / aspectRatio(p0, p1, p2);
+      mesh_.property(aspect_, fh) = static_cast<typename Mesh::Scalar>(1.0) / aspectRatio(p0, p1, p2);
     }
   }
 }
 
 //-----------------------------------------------------------------------------
 
-template<class DecimaterT>
-float ModAspectRatioT<DecimaterT>::collapse_priority(const CollapseInfo& _ci) {
+template<class MeshT>
+float ModAspectRatioT<MeshT>::collapse_priority(const CollapseInfo& _ci) {
   typename Mesh::VertexHandle v2, v3;
   typename Mesh::FaceHandle fh;
   const typename Mesh::Point *p1(&_ci.p1), *p2, *p3;
   typename Mesh::Scalar r0, r1, r0_min(1.0), r1_min(1.0);
-  typename Mesh::CVVIter vv_it(mesh_, _ci.v0);
+  typename Mesh::ConstVertexOHalfedgeIter voh_it(mesh_, _ci.v0);
 
-  v3 = vv_it.handle();
+  v3 = mesh_.to_vertex_handle(*voh_it);
   p3 = &mesh_.point(v3);
 
-  while (vv_it) {
+  while (voh_it.is_valid()) {
     v2 = v3;
     p2 = p3;
 
-    v3 = (++vv_it).handle();
+    ++voh_it;
+    v3 = mesh_.to_vertex_handle(*voh_it);
     p3 = &mesh_.point(v3);
 
-    fh = mesh_.face_handle(vv_it.current_halfedge_handle());
+    fh = mesh_.face_handle(*voh_it);
 
     // if not boundary
     if (fh.is_valid()) {
@@ -154,22 +164,36 @@ float ModAspectRatioT<DecimaterT>::collapse_priority(const CollapseInfo& _ci) {
 
       // aspect after
       if (!(v2 == _ci.v1 || v3 == _ci.v1))
-        if ((r1 = 1.0 / aspectRatio(*p1, *p2, *p3)) < r1_min)
+        if ((r1 = static_cast<typename Mesh::Scalar>(1.0) / aspectRatio(*p1, *p2, *p3)) < r1_min)
           r1_min = r1;
     }
   }
 
   if (Base::is_binary()) {
     return
-        ((r1_min > r0_min) || (r1_min > min_aspect_)) ? Base::LEGAL_COLLAPSE :
-            Base::ILLEGAL_COLLAPSE;
+        ((r1_min > r0_min) || (r1_min > min_aspect_)) ? float(Base::LEGAL_COLLAPSE) :
+            float(Base::ILLEGAL_COLLAPSE);
 
   } else {
     if (r1_min > r0_min)
-      return 1.0 - r1_min;
+      return 1.f - float(r1_min);
     else
       return
-          (r1_min > min_aspect_) ? 2.0 - r1_min : float(Base::ILLEGAL_COLLAPSE);
+          (r1_min > min_aspect_) ? 2.f - float(r1_min) : float(Base::ILLEGAL_COLLAPSE);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+template<class MeshT>
+void ModAspectRatioT<MeshT>::set_error_tolerance_factor(double _factor) {
+  if (_factor >= 0.0 && _factor <= 1.0) {
+    // the smaller the factor, the larger min_aspect_ gets
+    // thus creating a stricter constraint
+    // division by (2.0 - error_tolerance_factor_) is for normalization
+    float min_aspect = min_aspect_ * (2.f - float(_factor)) / (2.f - float(this->error_tolerance_factor_));
+    set_aspect_ratio(1.f/min_aspect);
+    this->error_tolerance_factor_ = _factor;
   }
 }
 

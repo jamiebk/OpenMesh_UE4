@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -275,8 +282,7 @@ int main(int argc, char **argv)
 
   // 
   MyMesh::FaceFaceIter   ff_it;
-  double                 quality(0.0), face_quality, temp_quality;
-  int                    valence;         
+  double                 quality(0.0);
 
   // ---------------------------------------- subdivide
   std::cout << "\nSubdividing...\n";
@@ -301,14 +307,14 @@ int main(int argc, char **argv)
     i = 0;
 
     // calculate target states for faces and vertices
-    int target1 = (n - 1) * n_rules + subdivider.subdiv_rule().number() + 1;
-    int target2 = n * n_rules;
+    size_t target1 = (n - 1) * n_rules + subdivider.subdiv_rule().number() + 1;
+    size_t target2 = n * n_rules;
 
     for (f_it = mesh.faces_begin(); f_it != mesh.faces_end(); ++f_it) {
       
-      if (mesh.data(f_it).state() < target1) {
+      if (mesh.data(*f_it).state() < int(target1) ) {
         ++i;        
-        fh = f_it.handle();
+        fh = *f_it;
         timer2.start();
         subdivider.refine(fh);
         timer2.stop();
@@ -317,8 +323,8 @@ int main(int argc, char **argv)
 
     for (v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); ++v_it) {
       
-      if (mesh.data(v_it).state() < target2) {
-        vh = v_it.handle();
+      if (mesh.data(*v_it).state() < int(target2) ) {
+        vh = *v_it;
         timer2.cont();
         subdivider.refine(vh);
         timer2.stop();
@@ -350,18 +356,17 @@ int main(int argc, char **argv)
       // calculate quality
       quality = 0.0;
 
-      fh = mesh.faces_begin().handle();
+      fh = *(mesh.faces_begin());
 
       // check every face
       for (f_it = mesh.faces_begin(); f_it != mesh.faces_end(); ++f_it) {
 
-        face_quality = 0.0;
-        valence      = 0;
+        double face_quality = 0.0;
+        int valence      = 0;
 
-        for (ff_it = mesh.ff_iter(f_it.handle()); ff_it; ++ff_it) {
+        for (ff_it = mesh.ff_iter(*f_it); ff_it.is_valid(); ++ff_it) {
 
-          temp_quality = OpenMesh::dot( mesh.normal(f_it), 
-                                        mesh.normal(ff_it) );
+          double temp_quality = OpenMesh::dot( mesh.normal(*f_it), mesh.normal(*ff_it) );
 
           if (temp_quality >= 1.0)
             temp_quality = .99;
@@ -383,9 +388,9 @@ int main(int argc, char **argv)
 #define nheh next_halfedge_handle
 #define tvh to_vertex_handle
 #define fvh from_vertex_handle
-        p1 = mesh.point(mesh.tvh(mesh.heh(f_it.handle())));
-        p2 = mesh.point(mesh.fvh(mesh.heh(f_it.handle())));
-        p3 = mesh.point(mesh.tvh(mesh.nheh(mesh.heh(f_it.handle()))));
+        p1 = mesh.point(mesh.tvh(mesh.heh(*f_it)));
+        p2 = mesh.point(mesh.fvh(mesh.heh(*f_it)));
+        p3 = mesh.point(mesh.tvh(mesh.nheh(mesh.heh(*f_it))));
 #undef heh
 #undef nheh
 #undef tvh
@@ -397,10 +402,10 @@ int main(int argc, char **argv)
         face_quality *= pow(double(area), double(.1));
         //face_quality *= area;
 
-        if (face_quality >= quality && !mesh.is_boundary(f_it.handle())) 
+        if (face_quality >= quality && !mesh.is_boundary(*f_it))
         {
           quality = face_quality;
-          fh      = f_it.handle();
+          fh      = *f_it;
         }
       }
 
@@ -421,8 +426,8 @@ int main(int argc, char **argv)
   for (MyMesh::VertexIter v_it = mesh.vertices_begin(); 
        v_it != mesh.vertices_end(); ++v_it) 
   {    
-    if (mesh.data(v_it).state() > max_level)
-      max_level = mesh.data(v_it).state();
+    if (mesh.data(*v_it).state() > max_level)
+      max_level = mesh.data(*v_it).state();
   }
 
 

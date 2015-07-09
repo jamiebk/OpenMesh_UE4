@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -82,7 +89,7 @@ namespace Utils { // BEGIN_NS_UTILS
 
 
 /** This class demonstrates the HeapInterface's interface.  If you
- *  want to build your customized heap you will have to specity a heap
+ *  want to build your customized heap you will have to specify a heap
  *  interface class and use this class as a template parameter for the
  *  class HeapT. This class defines the interface that this heap
  *  interface has to implement.
@@ -111,8 +118,8 @@ struct HeapInterfaceT
  *
  *  An efficient, highly customizable heap.
  *
- *  The main difference (and performace boost) of this heap compared
- *  to e.g. the heap of the STL is that here to positions of the
+ *  The main difference (and performance boost) of this heap compared
+ *  to e.g. the heap of the STL is that here the positions of the
  *  heap's elements are accessible from the elements themself.
  *  Therefore if one changes the priority of an element one does not
  *  have to remove and re-insert this element, but can just call the
@@ -156,10 +163,10 @@ public:
   bool empty() const { return HeapVector::empty(); }
 
   /// returns the size of heap
-  unsigned int size() const { return HeapVector::size(); }
+  size_t size() const { return HeapVector::size(); }
 
   /// reserve space for _n entries
-  void reserve(unsigned int _n) { HeapVector::reserve(_n); }
+  void reserve(size_t _n) { HeapVector::reserve(_n); }
 
   /// reset heap position to -1 (not in heap)
   void reset_heap_position(HeapEntry _h)
@@ -244,13 +251,13 @@ public:
     {
       if (((j=left(i))<size()) && interface_.greater(entry(i), entry(j))) 
       {
-	omerr() << "Heap condition violated\n";
-	ok=false;
+        omerr() << "Heap condition violated\n";
+        ok=false;
       }
       if (((j=right(i))<size()) && interface_.greater(entry(i), entry(j)))
       {
-	omerr() << "Heap condition violated\n";
-	ok=false;
+        omerr() << "Heap condition violated\n";
+        ok=false;
       }
     }
     return ok;
@@ -266,15 +273,15 @@ private:
 
   
   /// Upheap. Establish heap property.
-  void upheap(unsigned int _idx);
+  void upheap(size_t _idx);
 
   
   /// Downheap. Establish heap property.
-  void downheap(unsigned int _idx);
+  void downheap(size_t _idx);
 
   
   /// Get the entry at index _idx
-  inline HeapEntry entry(unsigned int _idx) const
+  inline HeapEntry entry(size_t _idx) const
   {
     assert(_idx < size());
     return (Base::operator[](_idx));
@@ -282,20 +289,20 @@ private:
 
   
   /// Set entry _h to index _idx and update _h's heap position.
-  inline void entry(unsigned int _idx, HeapEntry _h) 
+  inline void entry(size_t _idx, HeapEntry _h)
   {
     assert(_idx < size());
     Base::operator[](_idx) = _h;
-    interface_.set_heap_position(_h, _idx);
+    interface_.set_heap_position(_h, int(_idx));
   }
 
   
   /// Get parent's index
-  inline unsigned int parent(unsigned int _i) { return (_i-1)>>1; }
+  inline size_t parent(size_t _i) { return (_i-1)>>1; }
   /// Get left child's index
-  inline unsigned int left(unsigned int _i)   { return (_i<<1)+1; }
+  inline size_t left(size_t _i)   { return (_i<<1)+1; }
   /// Get right child's index
-  inline unsigned int right(unsigned int _i)  { return (_i<<1)+2; }
+  inline size_t right(size_t _i)  { return (_i<<1)+2; }
 
 };
 
@@ -308,13 +315,12 @@ private:
 template <class HeapEntry, class HeapInterface>
 void
 HeapT<HeapEntry, HeapInterface>::
-upheap(unsigned int _idx)
+upheap(size_t _idx)
 {
   HeapEntry     h = entry(_idx);
-  unsigned int  parentIdx;
+  size_t        parentIdx;
 
-  while ((_idx>0) &&
-	 interface_.less(h, entry(parentIdx=parent(_idx))))
+  while ((_idx>0) && interface_.less(h, entry(parentIdx=parent(_idx))))
   {
     entry(_idx, entry(parentIdx));
     _idx = parentIdx;    
@@ -330,19 +336,18 @@ upheap(unsigned int _idx)
 template <class HeapEntry, class HeapInterface>
 void
 HeapT<HeapEntry, HeapInterface>::
-downheap(unsigned int _idx)
+downheap(size_t _idx)
 {
   HeapEntry     h = entry(_idx);
-  unsigned int  childIdx;
-  unsigned int  s = size();
+  size_t        childIdx;
+  size_t        s = size();
   
   while(_idx < s)
   {
     childIdx = left(_idx);
     if (childIdx >= s) break;
     
-    if ((childIdx+1 < s) &&
-	(interface_.less(entry(childIdx+1), entry(childIdx))))
+    if ((childIdx + 1 < s) && (interface_.less(entry(childIdx + 1), entry(childIdx))))
       ++childIdx;
     
     if (interface_.less(h, entry(childIdx))) break;

@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -59,6 +66,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <iosfwd>
 // --------------------
 #include <OpenMesh/Core/Utils/PropertyContainer.hh>
 
@@ -88,7 +96,7 @@ namespace OpenMesh {
 /// \attention Since the class PolyMeshT derives from a kernel, hence all public
 /// elements of %BaseKernel are usable.
 
-class BaseKernel
+class OPENMESHDLLEXPORT BaseKernel
 {
 public: //-------------------------------------------- constructor / destructor
 
@@ -123,7 +131,6 @@ public: //-------------------------------------------------- add new properties
    *                -# The prefixes matching "^[vhefm]:" are reserved for
    *                   internal usage.
    *                -# The expression "^<.*>$" is reserved for internal usage.
-   *  \return \c true on success else \c false.
    *
    */
 
@@ -218,7 +225,7 @@ public: //--------------------------------------------------- remove properties
   }
 
   //@}
-
+  
 public: //------------------------------------------------ get handle from name
 
   /// \name Get property handle by name
@@ -404,6 +411,138 @@ public: //-------------------------------------------- access property elements
 
   //@}
 
+
+public: //------------------------------------------------ copy property
+
+  /** Copies a single property from one mesh element to another (of the same type)
+   *
+   * @param _ph       A vertex property handle
+   * @param _vh_from  From vertex handle
+   * @param _vh_to    To vertex handle
+   */
+  template <class T>
+  void copy_property(VPropHandleT<T>& _ph, VertexHandle _vh_from, VertexHandle _vh_to) {
+    if(_vh_from.is_valid() && _vh_to.is_valid())
+      vprops_.property(_ph)[_vh_to.idx()] = vprops_.property(_ph)[_vh_from.idx()];
+  }
+
+  /** Copies a single property from one mesh element to another (of the same type)
+    *
+    * @param _ph       A halfedge property handle
+    * @param _hh_from  From halfedge handle
+    * @param _hh_to    To halfedge handle
+    */
+  template <class T>
+  void copy_property(HPropHandleT<T> _ph, HalfedgeHandle _hh_from, HalfedgeHandle _hh_to) {
+    if(_hh_from.is_valid() && _hh_to.is_valid())
+      hprops_.property(_ph)[_hh_to.idx()] = hprops_.property(_ph)[_hh_from.idx()];
+  }
+
+  /** Copies a single property from one mesh element to another (of the same type)
+    *
+    * @param _ph       An edge property handle
+    * @param _eh_from  From edge handle
+    * @param _eh_to    To edge handle
+    */
+  template <class T>
+  void copy_property(EPropHandleT<T> _ph, EdgeHandle _eh_from, EdgeHandle _eh_to) {
+    if(_eh_from.is_valid() && _eh_to.is_valid())
+      eprops_.property(_ph)[_eh_to.idx()] = eprops_.property(_ph)[_eh_from.idx()];
+  }
+
+  /** Copies a single property from one mesh element to another (of the same type)
+    *
+    * @param _ph       A face property handle
+    * @param _fh_from  From face handle
+    * @param _fh_to    To face handle
+    */
+  template <class T>
+  void copy_property(FPropHandleT<T> _ph, FaceHandle _fh_from, FaceHandle _fh_to) {
+    if(_fh_from.is_valid() && _fh_to.is_valid())
+      fprops_.property(_ph)[_fh_to.idx()] = fprops_.property(_ph)[_fh_from.idx()];
+  }
+
+
+public:
+  //------------------------------------------------ copy all properties
+
+  /** Copies all properties from one mesh element to another (of the same type)
+   *
+   *
+   * @param _vh_from A vertex handle - source
+   * @param _vh_to   A vertex handle - target
+   * @param _copyBuildIn Should the internal properties (position, normal, texture coordinate,..) be copied?
+   */
+  void copy_all_properties(VertexHandle _vh_from, VertexHandle _vh_to, bool _copyBuildIn = false) {
+
+    for( PropertyContainer::iterator p_it = vprops_.begin();
+        p_it != vprops_.end(); ++p_it) {
+
+      // Copy all properties, if build in is true
+      // Otherwise, copy only properties without build in specifier
+      if ( *p_it && ( _copyBuildIn || (*p_it)->name().substr(0,2) != "v:" ) )
+        (*p_it)->copy(_vh_from.idx(), _vh_to.idx());
+
+    }
+  }
+
+  /** Copies all properties from one mesh element to another (of the same type)
+   *
+   * @param _hh_from A halfedge handle - source
+   * @param _hh_to   A halfedge handle - target
+   * @param _copyBuildIn Should the internal properties (position, normal, texture coordinate,..) be copied?
+   */
+  void copy_all_properties(HalfedgeHandle _hh_from, HalfedgeHandle _hh_to, bool _copyBuildIn = false) {
+
+    for( PropertyContainer::iterator p_it = hprops_.begin();
+        p_it != hprops_.end(); ++p_it) {
+
+      // Copy all properties, if build in is true
+      // Otherwise, copy only properties without build in specifier
+      if ( *p_it && ( _copyBuildIn || (*p_it)->name().substr(0,2) != "h:") )
+        (*p_it)->copy(_hh_from.idx(), _hh_to.idx());
+
+    }
+  }
+
+  /** Copies all properties from one mesh element to another (of the same type)
+   *
+   * @param _eh_from An edge handle - source
+   * @param _eh_to   An edge handle - target
+   * @param _copyBuildIn Should the internal properties (position, normal, texture coordinate,..) be copied?
+   */
+  void copy_all_properties(EdgeHandle _eh_from, EdgeHandle _eh_to, bool _copyBuildIn = false) {
+    for( PropertyContainer::iterator p_it = eprops_.begin();
+        p_it != eprops_.end(); ++p_it) {
+
+      // Copy all properties, if build in is true
+      // Otherwise, copy only properties without build in specifier
+      if ( *p_it && ( _copyBuildIn || (*p_it)->name().substr(0,2) != "e:") )
+        (*p_it)->copy(_eh_from.idx(), _eh_to.idx());
+
+    }
+  }
+
+  /** Copies all properties from one mesh element to another (of the same type)
+    *
+    * @param _fh_from A face handle - source
+    * @param _fh_to   A face handle - target
+    * @param _copyBuildIn Should the internal properties (position, normal, texture coordinate,..) be copied?
+    *
+    */
+  void copy_all_properties(FaceHandle _fh_from, FaceHandle _fh_to, bool _copyBuildIn = false) {
+
+    for( PropertyContainer::iterator p_it = fprops_.begin();
+        p_it != fprops_.end(); ++p_it) {
+
+      // Copy all properties, if build in is true
+      // Otherwise, copy only properties without build in specifier
+      if ( *p_it && ( _copyBuildIn || (*p_it)->name().substr(0,2) != "f:") )
+        (*p_it)->copy(_fh_from.idx(), _fh_to.idx());
+    }
+
+  }
+
 protected: //------------------------------------------------- low-level access
 
 public: // used by non-native kernel and MeshIO, should be protected
@@ -499,16 +638,16 @@ protected: // low-level access non-public
 public: //----------------------------------------------------- element numbers
 
 
-  virtual uint n_vertices()  const { return 0; }
-  virtual uint n_halfedges() const { return 0; }
-  virtual uint n_edges()     const { return 0; }
-  virtual uint n_faces()     const { return 0; }
+  virtual size_t n_vertices()  const { return 0; }
+  virtual size_t n_halfedges() const { return 0; }
+  virtual size_t n_edges()     const { return 0; }
+  virtual size_t n_faces()     const { return 0; }
 
 
 protected: //------------------------------------------- synchronize properties
 
-  void vprops_reserve(unsigned int _n) const { vprops_.reserve(_n); }
-  void vprops_resize(unsigned int _n) const { vprops_.resize(_n); }
+  void vprops_reserve(size_t _n) const { vprops_.reserve(_n); }
+  void vprops_resize(size_t _n) const { vprops_.resize(_n); }
   void vprops_clear() {
     vprops_.clear();
   }
@@ -516,8 +655,8 @@ protected: //------------------------------------------- synchronize properties
     vprops_.swap(_i0, _i1);
   }
 
-  void hprops_reserve(unsigned int _n) const { hprops_.reserve(_n); }
-  void hprops_resize(unsigned int _n) const { hprops_.resize(_n); }
+  void hprops_reserve(size_t _n) const { hprops_.reserve(_n); }
+  void hprops_resize(size_t _n) const { hprops_.resize(_n); }
   void hprops_clear() {
     hprops_.clear();
   }
@@ -525,8 +664,8 @@ protected: //------------------------------------------- synchronize properties
     hprops_.swap(_i0, _i1);
   }
 
-  void eprops_reserve(unsigned int _n) const { eprops_.reserve(_n); }
-  void eprops_resize(unsigned int _n) const { eprops_.resize(_n); }
+  void eprops_reserve(size_t _n) const { eprops_.reserve(_n); }
+  void eprops_resize(size_t _n) const { eprops_.resize(_n); }
   void eprops_clear() {
     eprops_.clear();
   }
@@ -534,8 +673,8 @@ protected: //------------------------------------------- synchronize properties
     eprops_.swap(_i0, _i1);
   }
 
-  void fprops_reserve(unsigned int _n) const { fprops_.reserve(_n); }
-  void fprops_resize(unsigned int _n) const { fprops_.resize(_n); }
+  void fprops_reserve(size_t _n) const { fprops_.reserve(_n); }
+  void fprops_resize(size_t _n) const { fprops_.resize(_n); }
   void fprops_clear() {
     fprops_.clear();
   }
@@ -543,14 +682,16 @@ protected: //------------------------------------------- synchronize properties
     fprops_.swap(_i0, _i1);
   }
 
-  void mprops_resize(unsigned int _n) const { mprops_.resize(_n); }
+  void mprops_resize(size_t _n) const { mprops_.resize(_n); }
   void mprops_clear() {
     mprops_.clear();
   }
 
 public:
 
-  void property_stats(std::ostream& _ostr = std::clog) const;
+  // uses std::clog as output stream
+  void property_stats() const;
+  void property_stats(std::ostream& _ostr) const;
 
   void vprop_stats( std::string& _string ) const;
   void hprop_stats( std::string& _string ) const;
@@ -558,11 +699,18 @@ public:
   void fprop_stats( std::string& _string ) const;
   void mprop_stats( std::string& _string ) const;
 
-  void vprop_stats(std::ostream& _ostr = std::clog) const;
-  void hprop_stats(std::ostream& _ostr = std::clog) const;
-  void eprop_stats(std::ostream& _ostr = std::clog) const;
-  void fprop_stats(std::ostream& _ostr = std::clog) const;
-  void mprop_stats(std::ostream& _ostr = std::clog) const;
+  // uses std::clog as output stream
+  void vprop_stats() const;
+  void hprop_stats() const;
+  void eprop_stats() const;
+  void fprop_stats() const;
+  void mprop_stats() const;
+
+  void vprop_stats(std::ostream& _ostr) const;
+  void hprop_stats(std::ostream& _ostr) const;
+  void eprop_stats(std::ostream& _ostr) const;
+  void fprop_stats(std::ostream& _ostr) const;
+  void mprop_stats(std::ostream& _ostr) const;
 
 public:
 

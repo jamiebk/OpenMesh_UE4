@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -98,7 +105,7 @@ public:
 
   /** \brief constructor & destructor
    *
-   * @param _mesh Reference to the mesh
+   * @param _mesh Reference a triangle or poly mesh
    */
   SmootherT( Mesh& _mesh );
   virtual ~SmootherT();
@@ -106,37 +113,80 @@ public:
 
 public:
 
+  //===========================================================================
+  /** @name Initialization and algorithm execution
+  * @{ */
+  //===========================================================================
+
   /** Initialize smoother
    * \param _comp Determine component to smooth
    * \param _cont Determine Continuity
    */
   void initialize(Component _comp, Continuity _cont);
 
+  /// Do _n smoothing iterations
+  virtual void smooth(unsigned int _n);
 
-  //@{
-  /// Set local error
+  /** @} */
+
+  //===========================================================================
+  /** @name Error control functions
+  * @{ */
+  //===========================================================================
+
+  /** \brief Set local error relative to bounding box
+   *
+   * This function sets a maximal error tolerance for the smoother as a fraction
+   * of the bounding box of the mesh. First the bounding box diagonal is computed.
+   * Then the error is set as the length of the diagonal multiplied with the
+   * given factor.
+   *
+   * @param _err Factor scaling the bounding box diagonal
+   */
   void set_relative_local_error(Scalar _err);
+
+  /** \brief Set local error as an absolute value
+   *
+   * Set the maximal error tolerance of the smoother to the given value.
+   *
+   * @param _err Maximal error
+   */
   void set_absolute_local_error(Scalar _err);
+
+  /** \brief Disable error control of the smoother
+   *
+   * This function disables the error control of the smoother.
+   */
   void disable_local_error_check();
-  //@}
 
   /** \brief enable or disable feature handling
+   *
+   * This function can be used to control if features on the mesh should be preserved.
+   * If enabled, the smoother will keep features and does not modify them. Features
+   * can be set via OpenMesh status flags (request status and set primitives as features).
+   * Feature flag can be set for vertices edges and faces.
    *
    * @param _state true  : If features are selected on the mesh, they will be left unmodified\n
    *               false : Features will be ignored
    */
   void skip_features( bool _state ){ skip_features_ = _state; };
 
-  /// Do _n smoothing iterations
-  virtual void smooth(unsigned int _n);
 
-
-
-  /// Find active vertices. Resets tagged status !
-  void set_active_vertices();
-
+  /** @} */
 
 private:
+
+  /** \brief  Find active vertices. Resets tagged status !
+     *
+     * This function recomputes the set of active vertices, which will be touched by the smoother.
+     * If nothing on the mesh is selected, all vertices which are not locked, feature or boundary will be
+     * marked as active and moved by the smoother.
+     * If vertices are selected, than only the selected ones, excluding the locked, feature and boundary vertices will be
+     * moved.
+     *
+     * The function is called first when running the smoother.
+     */
+  void set_active_vertices();
 
   // single steps of smoothing
   void compute_new_positions();

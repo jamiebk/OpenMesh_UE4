@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
  *---------------------------------------------------------------------------*
- *  This file is part of OpenMesh.                                           *
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *
@@ -58,7 +65,6 @@
 
 //STL
 #include <iostream>
-#include <ios>
 #include <fstream>
 #include <memory>
 
@@ -162,8 +168,8 @@ _OFFReader_::read(std::istream& _in, BaseImporter& _bi, Options& _opt )
      options_ += Options::ColorAlpha;
 
     return (options_.is_binary() ?
- 	   read_binary(_in, _bi, swap) :
-	   read_ascii(_in, _bi));
+ 	   read_binary(_in, _bi, _opt, swap) :
+	   read_ascii(_in, _bi, _opt));
 
 }
 
@@ -172,11 +178,9 @@ _OFFReader_::read(std::istream& _in, BaseImporter& _bi, Options& _opt )
 //-----------------------------------------------------------------------------
 
 bool
-_OFFReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const
+_OFFReader_::read_ascii(std::istream& _in, BaseImporter& _bi, Options& _opt) const
 {
 
-
-omlog() << "[OFFReader] : read ascii file\n";
 
   unsigned int            i, j, k, l, idx;
   unsigned int            nV, nF, dummy;
@@ -246,13 +250,17 @@ omlog() << "[OFFReader] : read ascii file\n";
             break;
         // rgb floats
         case 5 : stream >> c3f[0];  stream >> c3f[1];  stream >> c3f[2];
-            if ( userOptions_.vertex_has_color() )
-              _bi.set_color( vh, color_cast<Vec3uc, Vec3f>(c3f) );
+            if ( userOptions_.vertex_has_color() ) {
+              _bi.set_color( vh, c3f );
+              _opt += Options::ColorFloat;
+            }
             break;
         // rgba floats
         case 6 : stream >> c4f[0];  stream >> c4f[1];  stream >> c4f[2]; stream >> c4f[3];
-            if ( userOptions_.vertex_has_color() )
-              _bi.set_color( vh, color_cast<Vec4uc, Vec4f>(c4f) );
+            if ( userOptions_.vertex_has_color() ) {
+              _bi.set_color( vh, c4f );
+              _opt += Options::ColorFloat;
+            }
             break;
 
         default:
@@ -327,13 +335,17 @@ omlog() << "[OFFReader] : read ascii file\n";
             break;
         // rgb floats
         case 5 : stream >> c3f[0];  stream >> c3f[1];  stream >> c3f[2];
-            if ( userOptions_.face_has_color() )
-              _bi.set_color( fh, color_cast<Vec3uc, Vec3f>(c3f) );
+            if ( userOptions_.face_has_color() ) {
+              _bi.set_color( fh, c3f );
+              _opt += Options::ColorFloat;
+            }
             break;
         // rgba floats
         case 6 : stream >> c4f[0];  stream >> c4f[1];  stream >> c4f[2]; stream >> c4f[3];
-            if ( userOptions_.face_has_color() )
-              _bi.set_color( fh, color_cast<Vec4uc, Vec4f>(c4f) );
+            if ( userOptions_.face_has_color() ) {
+              _bi.set_color( fh, c4f );
+              _opt += Options::ColorFloat;
+            }
             break;
 
         default:
@@ -423,15 +435,15 @@ void _OFFReader_::readValue(std::istream& _in, unsigned int& _value) const{
 }
 
 bool
-_OFFReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap*/) const
+_OFFReader_::read_binary(std::istream& _in, BaseImporter& _bi, Options& _opt, bool /*_swap*/) const
 {
-  omlog() << "[OFFReader] : read binary file\n";
-
   unsigned int            i, j, k, l, idx;
   unsigned int            nV, nF, dummy;
   OpenMesh::Vec3f         v, n;
   OpenMesh::Vec3i         c;
   OpenMesh::Vec4i         cA;
+  OpenMesh::Vec3f         cf;
+  OpenMesh::Vec4f         cAf;
   OpenMesh::Vec2f         t;
   BaseImporter::VHandles  vhandles;
   VertexHandle            vh;
@@ -467,23 +479,46 @@ _OFFReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap*/) c
     }
 
     if ( options_.vertex_has_color() ) {
-      //with alpha
-      if ( options_.color_has_alpha() ){
-        readValue(_in, cA[0]);
-        readValue(_in, cA[1]);
-        readValue(_in, cA[2]);
-        readValue(_in, cA[3]);
+      if ( userOptions_.color_is_float() ) {
+        _opt += Options::ColorFloat;
+        //with alpha
+        if ( options_.color_has_alpha() ){
+          readValue(_in, cAf[0]);
+          readValue(_in, cAf[1]);
+          readValue(_in, cAf[2]);
+          readValue(_in, cAf[3]);
 
-        if ( userOptions_.vertex_has_color() )
-          _bi.set_color( vh, Vec4uc( cA ) );
-      }else{
-        //without alpha
-        readValue(_in, c[0]);
-        readValue(_in, c[1]);
-        readValue(_in, c[2]);
+          if ( userOptions_.vertex_has_color() )
+            _bi.set_color( vh, cAf );
+        }else{
 
-        if ( userOptions_.vertex_has_color() )
-          _bi.set_color( vh, Vec3uc( c ) );
+          //without alpha
+          readValue(_in, cf[0]);
+          readValue(_in, cf[1]);
+          readValue(_in, cf[2]);
+
+          if ( userOptions_.vertex_has_color() )
+            _bi.set_color( vh, cf );
+        }
+      } else {
+        //with alpha
+        if ( options_.color_has_alpha() ){
+          readValue(_in, cA[0]);
+          readValue(_in, cA[1]);
+          readValue(_in, cA[2]);
+          readValue(_in, cA[3]);
+
+          if ( userOptions_.vertex_has_color() )
+            _bi.set_color( vh, Vec4uc( cA ) );
+        }else{
+          //without alpha
+          readValue(_in, c[0]);
+          readValue(_in, c[1]);
+          readValue(_in, c[2]);
+
+          if ( userOptions_.vertex_has_color() )
+            _bi.set_color( vh, Vec3uc( c ) );
+        }
       }
     }
 
@@ -503,7 +538,6 @@ _OFFReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap*/) c
   {
     readValue(_in, nV);
 
-
     if (nV == 3)
     {
       vhandles.resize(3);
@@ -514,9 +548,7 @@ _OFFReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap*/) c
       vhandles[0] = VertexHandle(j);
       vhandles[1] = VertexHandle(k);
       vhandles[2] = VertexHandle(l);
-    }
-    else
-    {
+    } else {
       vhandles.clear();
       for (j=0; j<nV; ++j)
       {
@@ -528,24 +560,46 @@ _OFFReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap*/) c
     FaceHandle fh = _bi.add_face(vhandles);
 
     //face color
-    if ( options_.face_has_color() ) {
-      //with alpha
-      if ( options_.color_has_alpha() ){
-        readValue(_in, cA[0]);
-        readValue(_in, cA[1]);
-        readValue(_in, cA[2]);
-        readValue(_in, cA[3]);
+    if ( _opt.face_has_color() ) {
+      if ( userOptions_.color_is_float() ) {
+        _opt += Options::ColorFloat;
+        //with alpha
+        if ( options_.color_has_alpha() ){
+          readValue(_in, cAf[0]);
+          readValue(_in, cAf[1]);
+          readValue(_in, cAf[2]);
+          readValue(_in, cAf[3]);
 
-        if ( userOptions_.face_has_color() )
-          _bi.set_color( fh , Vec4uc( cA ) );
-      }else{
-        //without alpha
-        readValue(_in, c[0]);
-        readValue(_in, c[1]);
-        readValue(_in, c[2]);
+          if ( userOptions_.face_has_color() )
+            _bi.set_color( fh , cAf );
+        }else{
+          //without alpha
+          readValue(_in, cf[0]);
+          readValue(_in, cf[1]);
+          readValue(_in, cf[2]);
 
-        if ( userOptions_.face_has_color() )
-          _bi.set_color( fh, Vec3uc( c ) );
+          if ( userOptions_.face_has_color() )
+            _bi.set_color( fh, cf );
+        }
+      } else {
+        //with alpha
+        if ( options_.color_has_alpha() ){
+          readValue(_in, cA[0]);
+          readValue(_in, cA[1]);
+          readValue(_in, cA[2]);
+          readValue(_in, cA[3]);
+
+          if ( userOptions_.face_has_color() )
+            _bi.set_color( fh , Vec4uc( cA ) );
+        }else{
+          //without alpha
+          readValue(_in, c[0]);
+          readValue(_in, c[1]);
+          readValue(_in, c[2]);
+
+          if ( userOptions_.face_has_color() )
+            _bi.set_color( fh, Vec3uc( c ) );
+        }
       }
     }
 
@@ -589,7 +643,7 @@ bool _OFFReader_::can_u_read(std::istream& _is) const
   _is.getline(line, LINE_LEN);
   p = line;
 
-  size_t remainingChars = _is.gcount();
+  std::streamsize remainingChars = _is.gcount();
 
   bool vertexDimensionTooHigh = false;
 
@@ -619,7 +673,7 @@ bool _OFFReader_::can_u_read(std::istream& _is) const
   // Detect possible garbage and make sure, we don't have an underflow
   if ( remainingChars >= 4 )
     remainingChars -= 4;
-  else 
+  else
     remainingChars = 0;
 
   if ( ( remainingChars >= 6 ) && ( strncmp(p, "BINARY", 6) == 0 ) )

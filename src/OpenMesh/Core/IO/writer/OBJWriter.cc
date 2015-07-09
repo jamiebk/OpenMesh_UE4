@@ -1,39 +1,46 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
- *                                                                           *             
+ *                                                                           *
  *   $Revision$                                                         *
  *   $Date$                   *
  *                                                                           *
@@ -45,6 +52,7 @@
 
 //STL
 #include <fstream>
+#include <limits>
 
 // OpenMesh
 #include <OpenMesh/Core/System/config.h>
@@ -80,7 +88,7 @@ _OBJWriter_::_OBJWriter_() { IOManager().register_module(this); }
 
 bool
 _OBJWriter_::
-write(const std::string& _filename, BaseExporter& _be, Options _opt) const
+write(const std::string& _filename, BaseExporter& _be, Options _opt, std::streamsize _precision) const
 {
   std::fstream out(_filename.c_str(), std::ios_base::out );
 
@@ -90,6 +98,8 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt) const
 	  << _filename << std::endl;
     return false;
   }
+
+  out.precision(_precision);
 
   {
 #if defined(WIN32)
@@ -113,7 +123,7 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt) const
       objName_ = objName_.substr(0,dot-1);
   }
 
-  bool result = write(out, _be, _opt);
+  bool result = write(out, _be, _opt, _precision);
 
   out.close();
   return result;
@@ -121,9 +131,9 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt) const
 
 //-----------------------------------------------------------------------------
 
-int _OBJWriter_::getMaterial(OpenMesh::Vec3f _color) const
+size_t _OBJWriter_::getMaterial(OpenMesh::Vec3f _color) const
 {
-  for (uint i=0; i < material_.size(); i++)
+  for (size_t i=0; i < material_.size(); i++)
     if(material_[i] == _color)
       return i;
 
@@ -134,9 +144,9 @@ int _OBJWriter_::getMaterial(OpenMesh::Vec3f _color) const
 
 //-----------------------------------------------------------------------------
 
-int _OBJWriter_::getMaterial(OpenMesh::Vec4f _color) const
+size_t _OBJWriter_::getMaterial(OpenMesh::Vec4f _color) const
 {
-  for (uint i=0; i < materialA_.size(); i++)
+  for (size_t i=0; i < materialA_.size(); i++)
     if(materialA_[i] == _color)
       return i;
 
@@ -158,34 +168,34 @@ writeMaterial(std::ostream& _out, BaseExporter& _be, Options _opt) const
   materialA_.clear();
 
   //iterate over faces
-  for (int i=0, nF=_be.n_faces(); i<nF; ++i)
+  for (size_t i=0, nF=_be.n_faces(); i<nF; ++i)
   {
     //color with alpha
     if ( _opt.color_has_alpha() ){
-      cA  = color_cast<OpenMesh::Vec4f> (_be.colorA( FaceHandle(i) ));
+      cA  = color_cast<OpenMesh::Vec4f> (_be.colorA( FaceHandle(int(i)) ));
       getMaterial(cA);
     }else{
     //and without alpha
-      c  = color_cast<OpenMesh::Vec3f> (_be.color( FaceHandle(i) ));
+      c  = color_cast<OpenMesh::Vec3f> (_be.color( FaceHandle(int(i)) ));
       getMaterial(c);
     }
   }
 
   //write the materials
   if ( _opt.color_has_alpha() )
-    for (uint i=0; i < materialA_.size(); i++){
-      _out << "newmtl " << "mat" << i << std::endl;
-      _out << "Ka 0.5000 0.5000 0.5000" << std::endl;
-      _out << "Kd " << materialA_[i][0] << materialA_[i][1] << materialA_[i][2] << std::endl;;
-      _out << "Tr " << materialA_[i][3] << std::endl;
-      _out << "illum 1" << std::endl;
+    for (size_t i=0; i < materialA_.size(); i++){
+      _out << "newmtl " << "mat" << i << '\n';
+      _out << "Ka 0.5000 0.5000 0.5000" << '\n';
+      _out << "Kd " << materialA_[i][0] << materialA_[i][1] << materialA_[i][2] << '\n';;
+      _out << "Tr " << materialA_[i][3] << '\n';
+      _out << "illum 1" << '\n';
     }
   else
-    for (uint i=0; i < material_.size(); i++){
-      _out << "newmtl " << "mat" << i << std::endl;
-      _out << "Ka 0.5000 0.5000 0.5000" << std::endl;
-      _out << "Kd " << material_[i][0] << material_[i][1] << material_[i][2] << std::endl;;
-      _out << "illum 1" << std::endl;
+    for (size_t i=0; i < material_.size(); i++){
+      _out << "newmtl " << "mat" << i << '\n';
+      _out << "Ka 0.5000 0.5000 0.5000" << '\n';
+      _out << "Kd " << material_[i][0] << material_[i][1] << material_[i][2] << '\n';;
+      _out << "illum 1" << '\n';
     }
 
   return true;
@@ -196,9 +206,10 @@ writeMaterial(std::ostream& _out, BaseExporter& _be, Options _opt) const
 
 bool
 _OBJWriter_::
-write(std::ostream& _out, BaseExporter& _be, Options _opt) const
+write(std::ostream& _out, BaseExporter& _be, Options _opt, std::streamsize _precision) const
 {
-  unsigned int i, j, nV, nF, idx;
+  unsigned int idx;
+  size_t i, j,nV, nF;
   Vec3f v, n;
   Vec2f t;
   VertexHandle vh;
@@ -209,6 +220,7 @@ write(std::ostream& _out, BaseExporter& _be, Options _opt) const
 
   omlog() << "[OBJWriter] : write file\n";
 
+  _out.precision(_precision);
 
   // check exporter features
   if (!check( _be, _opt))
@@ -217,8 +229,7 @@ write(std::ostream& _out, BaseExporter& _be, Options _opt) const
 
   // check writer features
   if ( _opt.check(Options::Binary)     || // not supported by format
-       _opt.check(Options::FaceNormal) ||
-       _opt.check(Options::FaceColor))
+       _opt.check(Options::FaceNormal))
      return false;
 
 
@@ -229,7 +240,7 @@ write(std::ostream& _out, BaseExporter& _be, Options _opt) const
 
     std::fstream matStream(matFile.c_str(), std::ios_base::out );
 
-    if (!_out)
+    if (!matStream)
     {
       omerr() << "[OBJWriter] : cannot write material file " << matFile << std::endl;
 
@@ -242,82 +253,88 @@ write(std::ostream& _out, BaseExporter& _be, Options _opt) const
 
   // header
   _out << "# " << _be.n_vertices() << " vertices, ";
-  _out << _be.n_faces() << " faces" << std::endl;
+  _out << _be.n_faces() << " faces" << '\n';
 
   // material file
   if (useMatrial &&  _opt.check(Options::FaceColor) )
-    _out << "mtllib " << objName_ << ".mat" << std::endl;
+    _out << "mtllib " << objName_ << ".mat" << '\n';
 
   // vertex data (point, normals, texcoords)
   for (i=0, nV=_be.n_vertices(); i<nV; ++i)
   {
-    vh = VertexHandle(i);
+    vh = VertexHandle(int(i));
     v  = _be.point(vh);
     n  = _be.normal(vh);
     t  = _be.texcoord(vh);
 
-    _out << "v " << v[0] <<" "<< v[1] <<" "<< v[2] << std::endl;
+    _out << "v " << v[0] <<" "<< v[1] <<" "<< v[2] << '\n';
 
     if (_opt.check(Options::VertexNormal))
-      _out << "vn " << n[0] <<" "<< n[1] <<" "<< n[2] << std::endl;
+      _out << "vn " << n[0] <<" "<< n[1] <<" "<< n[2] << '\n';
 
     if (_opt.check(Options::VertexTexCoord))
-      _out << "vt " << t[0] <<" "<< t[1] << std::endl;
+      _out << "vt " << t[0] <<" "<< t[1] << '\n';
   }
 
-  int lastMat = -1;
+  size_t lastMat = std::numeric_limits<std::size_t>::max();
+
+  // we do not want to write seperators if we only write vertex indices
+  bool onlyVertices =    !_opt.check(Options::VertexTexCoord)
+                      && !_opt.check(Options::VertexNormal);
 
   // faces (indices starting at 1 not 0)
   for (i=0, nF=_be.n_faces(); i<nF; ++i)
   {
 
     if (useMatrial &&  _opt.check(Options::FaceColor) ){
-      int material = -1;
+      size_t material = std::numeric_limits<std::size_t>::max();
 
       //color with alpha
       if ( _opt.color_has_alpha() ){
-        cA  = color_cast<OpenMesh::Vec4f> (_be.colorA( FaceHandle(i) ));
+        cA  = color_cast<OpenMesh::Vec4f> (_be.colorA( FaceHandle(int(i)) ));
         material = getMaterial(cA);
       } else{
       //and without alpha
-        c  = color_cast<OpenMesh::Vec3f> (_be.color( FaceHandle(i) ));
+        c  = color_cast<OpenMesh::Vec3f> (_be.color( FaceHandle(int(i)) ));
         material = getMaterial(c);
       }
 
       // if we are ina a new material block, specify in the file which material to use
       if(lastMat != material) {
-        _out << "usemtl mat" << material << std::endl;
-	lastMat = material;
+        _out << "usemtl mat" << material << '\n';
+        lastMat = material;
       }
     }
 
     _out << "f";
 
-    _be.get_vhandles(FaceHandle(i), vhandles);
+    _be.get_vhandles(FaceHandle(int(i)), vhandles);
 
     for (j=0; j< vhandles.size(); ++j)
     {
-      
+
       // Write vertex index
       idx = vhandles[j].idx() + 1;
       _out << " " << idx;
 
-      // write separator
-      _out << "/" ;
-      
-      // write vertex texture coordinate index
-      if (_opt.check(Options::VertexTexCoord))
-        _out  << idx;
-      
-      // write separator
-      _out << "/" ;
+      if (!onlyVertices) {
+        // write separator
+        _out << "/" ;
 
-      // write vertex normal index
-      if ( _opt.check(Options::VertexNormal) )
-        _out << idx;
+        // write vertex texture coordinate index
+        if (_opt.check(Options::VertexTexCoord))
+          _out  << idx;
+
+        // write vertex normal index
+        if ( _opt.check(Options::VertexNormal) ) {
+          // write separator
+          _out << "/" ;
+          _out << idx;
+        }
+      }
     }
 
-    _out << std::endl;
+    _out << '\n';
   }
 
   material_.clear();

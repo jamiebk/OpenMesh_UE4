@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -137,14 +144,14 @@ void VDPMClientViewerWidget::mesh_coloring()
 
   for (; vIt!=vEnd; ++vIt)
   {
-    node_handle = mesh_.data(vIt.handle()).vhierarchy_node_handle();
+    node_handle = mesh_.data(*vIt).vhierarchy_node_handle();
     ratio = vhierarchy_.node(node_handle).ratio();
     
     r = (unsigned char) ((1.0f - ratio) * myYellow[0] + ratio * myBlue[0]);
     g = (unsigned char) ((1.0f - ratio) * myYellow[1] + ratio * myBlue[1]);
     b = (unsigned char) ((1.0f - ratio) * myYellow[2] + ratio * myBlue[2]);
 
-    mesh_.set_color(vIt.handle(), OpenMesh::Vec3uc(r,g,b));
+    mesh_.set_color(*vIt, OpenMesh::Vec3uc(r,g,b));
   }
 }
 
@@ -380,18 +387,18 @@ get_active_cuts(const VHierarchyNodeHandle _node_handle, MyMesh::VertexHandle &v
   
   for (vv_it=mesh_.vv_iter(vhierarchy_.vertex_handle(_node_handle)); vv_it; ++vv_it)
 	{
-    nnode_handle = mesh_.data(vv_it.handle()).vhierarchy_node_handle();
+    nnode_handle = mesh_.data(*vv_it).vhierarchy_node_handle();
     nnode_index = vhierarchy_.node_index(nnode_handle);
 
     if (vl == MyMesh::InvalidVertexHandle && vhierarchy_.is_ancestor(nnode_index, fund_lcut_index) == true)
-      vl = vv_it.handle();
+      vl = *vv_it;
     if (vr == MyMesh::InvalidVertexHandle && vhierarchy_.is_ancestor(nnode_index, fund_rcut_index) == true)
-      vr = vv_it.handle();
+      vr = *vv_it;
 
     /*if (vl == MyMesh::InvalidVertexHandle && nnode_index.is_ancestor_index(fund_lcut_index) == true)
-      vl = vv_it.handle();
+      vl = *vv_it;
     if (vr == MyMesh::InvalidVertexHandle && nnode_index.is_ancestor_index(fund_rcut_index) == true)
-      vr = vv_it.handle();*/
+      vr = *vv_it;*/
 
     if (vl != MyMesh::InvalidVertexHandle && vr != MyMesh::InvalidVertexHandle)
       break;

@@ -1,39 +1,46 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
- *                                                                           *             
+ *                                                                           *
  *   $Revision$                                                         *
  *   $Date$                   *
  *                                                                           *
@@ -80,23 +87,23 @@ namespace Decimater { // BEGIN_NS_DECIMATER
   *
   * In continuous mode the roundness after the collapse is returned
   */
-template <class DecimaterType>
-class ModRoundnessT : public ModBaseT<DecimaterType>
+template <class MeshT>
+class ModRoundnessT : public ModBaseT<MeshT>
 {
   public:
-  DECIMATING_MODULE( ModRoundnessT, DecimaterType, Roundness );
+  DECIMATING_MODULE( ModRoundnessT, MeshT, Roundness );
 
   public:
 
   // typedefs
-  typedef typename Mesh::Point                      Point;
+  typedef typename MeshT::Point                      Point;
   typedef typename vector_traits<Point>::value_type value_type;
 
   public:
 
   /// Constructor
-  ModRoundnessT( DecimaterType &_dec ) :
-    Base(_dec, false), 
+  ModRoundnessT( MeshT &_dec ) :
+    Base(_dec, false),
     min_r_(-1.0)
   { }
 
@@ -109,14 +116,14 @@ class ModRoundnessT : public ModBaseT<DecimaterType>
    *
    *  The roundness is computed by dividing the radius of the
    *  circumference by the length of the shortest edge. The result is
-   *  normalized.  
+   *  normalized.
    *
    * \return [0:1] or ILLEGAL_COLLAPSE in non-binary mode
    * \return LEGAL_COLLAPSE or ILLEGAL_COLLAPSE in binary mode
    * \see set_min_roundness()
    */
-  float collapse_priority(const CollapseInfo& _ci)  
-  {    
+  float collapse_priority(const CollapseInfo& _ci)
+  {
     //     using namespace OpenMesh;
 
     typename Mesh::ConstVertexOHalfedgeIter voh_it(Base::mesh(), _ci.v0);
@@ -125,17 +132,17 @@ class ModRoundnessT : public ModBaseT<DecimaterType>
     typename Mesh::FaceHandle               fhC, fhB;
     Vec3f                                   B,C;
 
-    if ( min_r_ < 0.0 ) // continues mode
-    {      
-      C   = vector_cast<Vec3f>(Base::mesh().point( Base::mesh().to_vertex_handle(voh_it)));
-      fhC = Base::mesh().face_handle( voh_it.handle() );
+    if ( min_r_ < 0.0f ) // continues mode
+    {
+      C   = vector_cast<Vec3f>(Base::mesh().point( Base::mesh().to_vertex_handle(*voh_it)));
+      fhC = Base::mesh().face_handle( *voh_it );
 
-      for (++voh_it; voh_it; ++voh_it) 
+      for (++voh_it; voh_it.is_valid(); ++voh_it)
       {
         B   = C;
         fhB = fhC;
-        C   = vector_cast<Vec3f>(Base::mesh().point(Base::mesh().to_vertex_handle(voh_it)));
-        fhC = Base::mesh().face_handle( voh_it.handle() );
+        C   = vector_cast<Vec3f>(Base::mesh().point(Base::mesh().to_vertex_handle(*voh_it)));
+        fhC = Base::mesh().face_handle( *voh_it );
 
         if ( fhB == _ci.fl || fhB == _ci.fr )
           continue;
@@ -150,15 +157,15 @@ class ModRoundnessT : public ModBaseT<DecimaterType>
     }
     else // binary mode
     {
-      C   = vector_cast<Vec3f>(Base::mesh().point( Base::mesh().to_vertex_handle(voh_it)));
-      fhC = Base::mesh().face_handle( voh_it.handle() );
+      C   = vector_cast<Vec3f>(Base::mesh().point( Base::mesh().to_vertex_handle(*voh_it)));
+      fhC = Base::mesh().face_handle( *voh_it );
 
-      for (++voh_it; voh_it && (priority==Base::LEGAL_COLLAPSE); ++voh_it) 
+      for (++voh_it; voh_it.is_valid() && (priority==Base::LEGAL_COLLAPSE); ++voh_it)
       {
         B   = C;
         fhB = fhC;
-        C   = vector_cast<Vec3f>(Base::mesh().point(Base::mesh().to_vertex_handle(voh_it)));
-        fhC = Base::mesh().face_handle( voh_it.handle() );
+        C   = vector_cast<Vec3f>(Base::mesh().point(Base::mesh().to_vertex_handle(*voh_it)));
+        fhC = Base::mesh().face_handle( *voh_it );
 
         if ( fhB == _ci.fl || fhB == _ci.fr )
           continue;
@@ -171,6 +178,19 @@ class ModRoundnessT : public ModBaseT<DecimaterType>
     return (float) priority;
   }
 
+  /// set the percentage of minimum roundness
+  void set_error_tolerance_factor(double _factor) {
+    if (this->is_binary()) {
+      if (_factor >= 0.0 && _factor <= 1.0) {
+        // the smaller the factor, the smaller min_r_ gets
+        // thus creating a stricter constraint
+        // division by error_tolerance_factor_ is for normalization
+        value_type min_roundness = min_r_ * _factor / this->error_tolerance_factor_;
+        set_min_roundness(min_roundness);
+        this->error_tolerance_factor_ = _factor;
+      }
+}
+  }
 
 
 public: // specific methods
@@ -183,26 +203,26 @@ public: // specific methods
 
     Vec3f A,B,C;
 
-    A = Vec3f(             0, 0,           0);
-    B = Vec3f( 2*cos(_angle), 0,           0);
-    C = Vec3f(   cos(_angle), sin(_angle), 0);
+    A = Vec3f(               0.0f, 0.0f,           0.0f);
+    B = Vec3f( 2.0f * cos(_angle), 0.0f,           0.0f);
+    C = Vec3f(        cos(_angle), sin(_angle),    0.0f);
 
     double r1 = roundness(A,B,C);
 
     _angle = float(0.5 * ( M_PI - _angle ));
 
-    A = Vec3f(             0, 0,           0);
-    B = Vec3f( 2*cos(_angle), 0,           0);
-    C = Vec3f(   cos(_angle), sin(_angle), 0);
+    A = Vec3f(             0.0f, 0.0f,           0.0f);
+    B = Vec3f( 2.0f*cos(_angle), 0.0f,           0.0f);
+    C = Vec3f(      cos(_angle), sin(_angle),    0.0f);
 
     double r2 = roundness(A,B,C);
 
-    set_min_roundness( value_type(std::min(r1,r2)), true ); 
+    set_min_roundness( value_type(std::min(r1,r2)), true );
   }
 
   /** Set a minimum roundness value.
    *  \param _min_roundness in range (0,1)
-   *  \param _binary Set true, if the binary mode should be enabled, 
+   *  \param _binary Set true, if the binary mode should be enabled,
    *                 else false. In latter case the collapse_priority()
    *                 returns a float value if the constraint does not apply
    *                 and ILLEGAL_COLLAPSE else.
@@ -230,11 +250,11 @@ public: // specific methods
   //
   // then define
   //
-  //      radius of circumference 
+  //      radius of circumference
   // R := -----------------------
   //      length of shortest edge
   //
-  //       ||a|| * ||b|| * ||c||    
+  //       ||a|| * ||b|| * ||c||
   //       ---------------------
   //             4 * Area                 ||a|| * ||b|| * ||c||
   //    = ----------------------- = -----------------------------------
@@ -254,7 +274,7 @@ public: // specific methods
   //
   // At angle 60� R has it's minimum for all edge lengths = sqrt(1/3)
   //
-  // Define normalized roundness 
+  // Define normalized roundness
   //
   // nR := sqrt(1/3) / R
   //
@@ -266,7 +286,7 @@ public: // specific methods
   {
     const value_type epsilon = value_type(1e-15);
 
-    static const value_type sqrt43 = value_type(sqrt(4.0/3.0)); // 60�,a=b=c, **)    
+    static const value_type sqrt43 = value_type(sqrt(4.0/3.0)); // 60�,a=b=c, **)
 
     Vec3f vecAC     = C-A;
     Vec3f vecAB     = B-A;
@@ -281,7 +301,7 @@ public: // specific methods
       return 0.0;
 
     double nom   = AA * std::min( std::min(aa,bb),cc );
-    double denom = aa * bb * cc;    
+    double denom = aa * bb * cc;
     double nR    = sqrt43 * sqrt(nom/denom);
 
     return nR;

@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
  *---------------------------------------------------------------------------*
- *  This file is part of OpenMesh.                                           *
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
- \*===========================================================================*/
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *
@@ -54,6 +61,7 @@
 
 //STL
 #include <fstream>
+#include <iostream>
 #include <memory>
 
 #ifndef WIN32
@@ -153,22 +161,122 @@ bool _PLYReader_::read(std::istream& _in, BaseImporter& _bi, Options& _opt) {
     if (options_.is_binary()) {
         _opt += Options::Binary;
     }
+    if (options_.color_is_float()) {
+        _opt += Options::ColorFloat;
+    }
+    if (options_.check(Options::Custom) && userOptions_.check(Options::Custom)) {
+        _opt += Options::Custom;
+    }
 
     //    //force user-choice for the alpha value when reading binary
     //    if ( options_.is_binary() && userOptions_.color_has_alpha() )
     //      options_ += Options::ColorAlpha;
 
-    return (options_.is_binary() ? read_binary(_in, _bi, swap) : read_ascii(_in, _bi));
+    return (options_.is_binary() ? read_binary(_in, _bi, swap, _opt) : read_ascii(_in, _bi, _opt));
 
 }
 
+template<typename T, typename Handle>
+struct Handle2Prop;
+
+template<typename T>
+struct Handle2Prop<T,VertexHandle>
+{
+  typedef OpenMesh::VPropHandleT<T> PropT;
+};
+
+template<typename T>
+struct Handle2Prop<T,FaceHandle>
+{
+  typedef OpenMesh::FPropHandleT<T> PropT;
+};
+
+template<typename T, typename Handle>
+void assignCustomProperty(std::istream& _in, BaseImporter& _bi, Handle _h, const std::string& _propName, bool isList)
+{
+  if (!isList)
+  {
+    //get/add property
+    typename Handle2Prop<T,Handle>::PropT prop;
+    if (!_bi.kernel()->get_property_handle(prop,_propName))
+      _bi.kernel()->add_property(prop,_propName);
+
+    //read and assign
+    T in;
+    _in >> in;
+    _bi.kernel()->property(prop,_h) = in;
+  }
+  else
+  {
+    //get/add property
+    typename Handle2Prop<std::vector<T>,Handle>::PropT prop;
+    if (!_bi.kernel()->get_property_handle(prop,_propName))
+      _bi.kernel()->add_property(prop,_propName);
+
+    //init vector
+    int numberOfValues;
+    _in >> numberOfValues;
+    std::vector<T> vec;
+    vec.reserve(numberOfValues);
+    //read and assign
+    for (int i = 0; i < numberOfValues; ++i)
+    {
+      T in;
+      _in >> in;
+      vec.push_back(in);
+    }
+    _bi.kernel()->property(prop,_h) = vec;
+  }
+}
+
+template<typename Handle>
+void _PLYReader_::readCustomProperty(std::istream& _in, BaseImporter& _bi, Handle _h, const std::string& _propName, const ValueType _valueType, const ValueType _listIndexType) const
+{
+  const bool isList = _listIndexType != Unsupported;
+  switch (_valueType)
+  {
+  case ValueTypeINT8:
+  case ValueTypeCHAR:
+      assignCustomProperty<signed char>(_in,_bi,_h,_propName,isList);
+      break;
+  case ValueTypeUINT8:
+  case ValueTypeUCHAR:
+      assignCustomProperty<unsigned char>(_in,_bi,_h,_propName,isList);
+      break;
+  case ValueTypeINT16:
+  case ValueTypeSHORT:
+      assignCustomProperty<short>(_in,_bi,_h,_propName,isList);
+      break;
+  case ValueTypeUINT16:
+  case ValueTypeUSHORT:
+      assignCustomProperty<unsigned short>(_in,_bi,_h,_propName,isList);
+      break;
+  case ValueTypeINT32:
+  case ValueTypeINT:
+      assignCustomProperty<int>(_in,_bi,_h,_propName,isList);
+      break;
+  case ValueTypeUINT32:
+  case ValueTypeUINT:
+      assignCustomProperty<unsigned int>(_in,_bi,_h,_propName,isList);
+      break;
+  case ValueTypeFLOAT32:
+  case ValueTypeFLOAT:
+      assignCustomProperty<float>(_in,_bi,_h,_propName,isList);
+      break;
+  case ValueTypeFLOAT64:
+  case ValueTypeDOUBLE:
+      assignCustomProperty<double>(_in,_bi,_h,_propName,isList);
+      break;
+  default:
+      std::cerr << "unsupported type" << std::endl;
+      break;
+  }
+}
 
 
 //-----------------------------------------------------------------------------
 
-bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const {
-
-    omlog() << "[PLYReader] : read ascii file\n";
+bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi, const Options& _opt) const {
 
     // Reparse the header
     if (!can_u_read(_in)) {
@@ -195,6 +303,8 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const {
 
     // read vertices:
     for (i = 0; i < vertexCount_ && !_in.eof(); ++i) {
+        vh = _bi.add_vertex();
+
         v[0] = 0.0;
         v[1] = 0.0;
         v[2] = 0.0;
@@ -211,8 +321,8 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const {
         c[2] = 0;
         c[3] = 255;
 
-        for (uint propertyIndex = 0; propertyIndex < vertexPropertyCount_; ++propertyIndex) {
-            switch (vertexPropertyMap_[propertyIndex].first) {
+        for (size_t propertyIndex = 0; propertyIndex < vertexProperties_.size(); ++propertyIndex) {
+            switch (vertexProperties_[propertyIndex].property) {
             case XCOORD:
                 _in >> v[0];
                 break;
@@ -238,36 +348,42 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const {
                 _in >> t[1];
                 break;
             case COLORRED:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
                     _in >> tmp;
                     c[0] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
                     _in >> c[0];
                 break;
             case COLORGREEN:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
                     _in >> tmp;
                     c[1] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
                     _in >> c[1];
                 break;
             case COLORBLUE:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
                     _in >> tmp;
                     c[2] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
                     _in >> c[2];
                 break;
             case COLORALPHA:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
                     _in >> tmp;
                     c[3] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
                     _in >> c[3];
+                break;
+            case CUSTOM_PROP:
+                if (_opt.check(Options::Custom))
+                  readCustomProperty(_in, _bi, vh, vertexProperties_[propertyIndex].name, vertexProperties_[propertyIndex].value, vertexProperties_[propertyIndex].listIndexType);
+                else
+                  _in >> trash;
                 break;
             default:
                 _in >> trash;
@@ -275,19 +391,27 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const {
             }
         }
 
-        vh = _bi.add_vertex(v);
-        _bi.set_normal(vh, n);
-        _bi.set_texcoord(vh, t);
-        _bi.set_color(vh, Vec4uc(c));
+        _bi.set_point(vh, v);
+        if (_opt.vertex_has_normal())
+          _bi.set_normal(vh, n);
+        if (_opt.vertex_has_texcoord())
+          _bi.set_texcoord(vh, t);
+        if (_opt.vertex_has_color())
+          _bi.set_color(vh, Vec4uc(c));
     }
 
     // faces
-    // #N <v1> <v2> .. <v(n-1)> [color spec]
     for (i = 0; i < faceCount_; ++i) {
-        // nV = number of Vertices for current face
-        _in >> nV;
+      FaceHandle fh;
+      for (size_t propertyIndex = 0; propertyIndex < faceProperties_.size(); ++propertyIndex) {
+        PropertyInfo prop = faceProperties_[propertyIndex];
+        switch (prop.property) {
 
-        if (nV == 3) {
+        case VERTEX_INDICES:
+          // nV = number of Vertices for current face
+          _in >> nV;
+
+          if (nV == 3) {
             vhandles.resize(3);
             _in >> j;
             _in >> k;
@@ -296,15 +420,29 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const {
             vhandles[0] = VertexHandle(j);
             vhandles[1] = VertexHandle(k);
             vhandles[2] = VertexHandle(l);
-        } else {
+          } else {
             vhandles.clear();
             for (j = 0; j < nV; ++j) {
-                _in >> idx;
-                vhandles.push_back(VertexHandle(idx));
+              _in >> idx;
+              vhandles.push_back(VertexHandle(idx));
             }
-        }
+          }
 
-        FaceHandle fh = _bi.add_face(vhandles);
+          fh = _bi.add_face(vhandles);
+          break;
+
+        case CUSTOM_PROP:
+          if (_opt.check(Options::Custom) && fh.is_valid())
+            readCustomProperty(_in, _bi, fh, prop.name, prop.value, prop.listIndexType);
+          else
+            _in >> trash;
+          break;
+
+        default:
+          _in >> trash;
+          break;
+        }
+      }
 
     }
 
@@ -314,9 +452,7 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi) const {
 
 //-----------------------------------------------------------------------------
 
-bool _PLYReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap*/) const {
-
-    omlog() << "[PLYReader] : read binary file format\n";
+bool _PLYReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap*/, const Options& _opt) const {
 
     // Reparse the header
     if (!can_u_read(_in)) {
@@ -324,8 +460,6 @@ bool _PLYReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap
         return false;
     }
 
-    unsigned int i, j, k, l, idx;
-    unsigned int nV;
     OpenMesh::Vec3f        v, n;  // Vertex
     OpenMesh::Vec2f        t;  // TexCoords
     BaseImporter::VHandles vhandles;
@@ -336,7 +470,7 @@ bool _PLYReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap
     _bi.reserve(vertexCount_, 3* vertexCount_ , faceCount_);
 
     // read vertices:
-    for (i = 0; i < vertexCount_ && !_in.eof(); ++i) {
+    for (unsigned int i = 0; i < vertexCount_ && !_in.eof(); ++i) {
         v[0] = 0.0;
         v[1] = 0.0;
         v[2] = 0.0;
@@ -353,105 +487,114 @@ bool _PLYReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap
         c[2] = 0;
         c[3] = 255;
 
-        for (uint propertyIndex = 0; propertyIndex < vertexPropertyCount_; ++propertyIndex) {
-            switch (vertexPropertyMap_[propertyIndex].first) {
+        for (size_t propertyIndex = 0; propertyIndex < vertexProperties_.size(); ++propertyIndex) {
+            switch (vertexProperties_[propertyIndex].property) {
             case XCOORD:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, v[0]);
+                readValue(vertexProperties_[propertyIndex].value, _in, v[0]);
                 break;
             case YCOORD:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, v[1]);
+                readValue(vertexProperties_[propertyIndex].value, _in, v[1]);
                 break;
             case ZCOORD:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, v[2]);
+                readValue(vertexProperties_[propertyIndex].value, _in, v[2]);
                 break;
             case XNORM:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, n[0]);
+                readValue(vertexProperties_[propertyIndex].value, _in, n[0]);
                 break;
             case YNORM:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, n[1]);
+                readValue(vertexProperties_[propertyIndex].value, _in, n[1]);
                 break;
             case ZNORM:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, n[2]);
+                readValue(vertexProperties_[propertyIndex].value, _in, n[2]);
                 break;
             case TEXX:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, t[0]);
+                readValue(vertexProperties_[propertyIndex].value, _in, t[0]);
                 break;
             case TEXY:
-                readValue(vertexPropertyMap_[propertyIndex].second, _in, t[1]);
+                readValue(vertexProperties_[propertyIndex].value, _in, t[1]);
                 break;
             case COLORRED:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
-                    readValue(vertexPropertyMap_[propertyIndex].second, _in, tmp);
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
+                    readValue(vertexProperties_[propertyIndex].value, _in, tmp);
 
                     c[0] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
-                    readInteger(vertexPropertyMap_[propertyIndex].second, _in, c[0]);
+                    readInteger(vertexProperties_[propertyIndex].value, _in, c[0]);
 
                 break;
             case COLORGREEN:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
-                    readValue(vertexPropertyMap_[propertyIndex].second, _in, tmp);
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
+                    readValue(vertexProperties_[propertyIndex].value, _in, tmp);
                     c[1] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
-                    readInteger(vertexPropertyMap_[propertyIndex].second, _in, c[1]);
+                    readInteger(vertexProperties_[propertyIndex].value, _in, c[1]);
 
                 break;
             case COLORBLUE:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
-                    readValue(vertexPropertyMap_[propertyIndex].second, _in, tmp);
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
+                    readValue(vertexProperties_[propertyIndex].value, _in, tmp);
                     c[2] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
-                    readInteger(vertexPropertyMap_[propertyIndex].second, _in, c[2]);
+                    readInteger(vertexProperties_[propertyIndex].value, _in, c[2]);
 
                 break;
             case COLORALPHA:
-                if (vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT32 ||
-                    vertexPropertyMap_[propertyIndex].second == ValueTypeFLOAT) {
-                    readValue(vertexPropertyMap_[propertyIndex].second, _in, tmp);
+                if (vertexProperties_[propertyIndex].value == ValueTypeFLOAT32 ||
+                    vertexProperties_[propertyIndex].value == ValueTypeFLOAT) {
+                    readValue(vertexProperties_[propertyIndex].value, _in, tmp);
                     c[3] = static_cast<OpenMesh::Vec4i::value_type> (tmp * 255.0f);
                 } else
-                    readInteger(vertexPropertyMap_[propertyIndex].second, _in, c[3]);
+                    readInteger(vertexProperties_[propertyIndex].value, _in, c[3]);
 
                 break;
             default:
                 // Read unsupported property
-                consume_input(_in, scalar_size_[vertexPropertyMap_[propertyIndex].second]);
+                consume_input(_in, scalar_size_[vertexProperties_[propertyIndex].value]);
                 break;
             }
 
         }
 
         vh = _bi.add_vertex(v);
-        _bi.set_normal(vh, n);
-        _bi.set_texcoord(vh, t);
-        _bi.set_color(vh, Vec4uc(c));
+        if (_opt.vertex_has_normal())
+          _bi.set_normal(vh, n);
+        if (_opt.vertex_has_texcoord())
+          _bi.set_texcoord(vh, t);
+        if (_opt.vertex_has_color())
+          _bi.set_color(vh, Vec4uc(c));
     }
 
-    for (i = 0; i < faceCount_; ++i) {
+    if(!faceProperties_.empty())
+    {
+      for (unsigned int i = 0; i < faceCount_; ++i) {
         // Read number of vertices for the current face
-        readValue(faceIndexType_, _in, nV);
+        unsigned int nV;
+        readValue(faceProperties_[0].listIndexType, _in, nV);
 
         if (nV == 3) {
-            vhandles.resize(3);
-            readInteger(faceEntryType_, _in, j);
-            readInteger(faceEntryType_, _in, k);
-            readInteger(faceEntryType_, _in, l);
+          vhandles.resize(3);
+          unsigned int j,k,l;
+          readInteger(faceProperties_[0].value, _in, j);
+          readInteger(faceProperties_[0].value, _in, k);
+          readInteger(faceProperties_[0].value, _in, l);
 
-            vhandles[0] = VertexHandle(j);
-            vhandles[1] = VertexHandle(k);
-            vhandles[2] = VertexHandle(l);
+          vhandles[0] = VertexHandle(j);
+          vhandles[1] = VertexHandle(k);
+          vhandles[2] = VertexHandle(l);
         } else {
-            vhandles.clear();
-            for (j = 0; j < nV; ++j) {
-                readInteger(faceEntryType_, _in, idx);
-                vhandles.push_back(VertexHandle(idx));
-            }
+          vhandles.clear();
+          for (unsigned int j = 0; j < nV; ++j) {
+            unsigned int idx;
+            readInteger(faceProperties_[0].value, _in, idx);
+            vhandles.push_back(VertexHandle(idx));
+          }
         }
 
-        FaceHandle fh = _bi.add_face(vhandles);
+        _bi.add_face(vhandles);
+      }
     }
 
     return true;
@@ -484,7 +627,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, float& _value) c
 void _PLYReader_::readValue(ValueType _type, std::istream& _in, double& _value) const {
 
     switch (_type) {
-        
+
         case ValueTypeFLOAT64:
 
         case ValueTypeDOUBLE:
@@ -519,7 +662,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, unsigned int& _v
         case ValueTypeUINT:
 
         case ValueTypeUINT32:
-    
+
             restore(_in, tmp_uint32_t, options_.check(Options::MSB));
             _value = tmp_uint32_t;
 
@@ -628,7 +771,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, int& _value) c
 
             restore(_in, tmp_uint32_t, options_.check(Options::MSB));
             _value = tmp_uint32_t;
-    
+
             break;
 
         case ValueTypeCHAR:
@@ -721,7 +864,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, unsigned int& 
 
 
 bool _PLYReader_::can_u_read(const std::string& _filename) const {
-    
+
     // !!! Assuming BaseReader::can_u_parse( std::string& )
     // does not call BaseReader::read_magic()!!!
 
@@ -740,7 +883,7 @@ bool _PLYReader_::can_u_read(const std::string& _filename) const {
 //-----------------------------------------------------------------------------
 
 std::string get_property_name(std::string _string1, std::string _string2) {
-    
+
     if (_string1 == "float32" || _string1 == "float64" || _string1 == "float" || _string1 == "double" ||
         _string1 == "int8" || _string1 == "uint8" || _string1 == "char" || _string1 == "uchar" ||
         _string1 == "int32" || _string1 == "uint32" || _string1 == "int" || _string1 == "uint" ||
@@ -837,9 +980,9 @@ bool _PLYReader_::can_u_read(std::istream& _is) const {
     // Clear per file options
     options_.cleanup();
 
-    // clear vertex property map, will be recreated
-    vertexPropertyMap_.clear();
-    vertexPropertyCount_ = 0;
+    // clear property maps, will be recreated
+    vertexProperties_.clear();
+    faceProperties_.clear();
 
     // read 1st line
     std::string line;
@@ -849,8 +992,6 @@ bool _PLYReader_::can_u_read(std::istream& _is) const {
     //Check if this file is really a ply format
     if (line != "PLY" && line != "ply")
         return false;
-
-    //   omlog() << "PLY header found" << std::endl;
 
     vertexCount_ = 0;
     faceCount_ = 0;
@@ -892,13 +1033,12 @@ bool _PLYReader_::can_u_read(std::istream& _is) const {
         return false;
     }
 
-    size_t streamPos = _is.tellg();
+    std::streamoff streamPos = _is.tellg();
     _is >> keyword;
     while (keyword != "end_header") {
 
         if (keyword == "comment") {
             std::getline(_is, line);
-            omlog() << "PLY header comment : " << line << std::endl;
         } else if (keyword == "element") {
             _is >> elementName;
             if (elementName == "vertex") {
@@ -916,112 +1056,156 @@ bool _PLYReader_::can_u_read(std::istream& _is) const {
             _is >> tmp1;
 
             if (tmp1 == "list") {
-                if (elementName == "vertex") {
-                    omerr() << "List type not supported for vertices!" << std::endl;
-                } else if (elementName == "face") {
-                    _is >> listIndexType;
-                    _is >> listEntryType;
-                    _is >> propertyName;
+              _is >> listIndexType;
+              _is >> listEntryType;
+              _is >> propertyName;
 
-                    if (listIndexType == "uint8") {
-                        faceIndexType_ = ValueTypeUINT8;
-                    } else if (listIndexType == "uchar") {
-                        faceIndexType_ = ValueTypeUCHAR;
-                    } else {
-                        omerr() << "Unsupported Index type for face list: " << listIndexType << std::endl;
-                    }
+              ValueType indexType = Unsupported;
+              ValueType entryType = Unsupported;
 
-                    if (listEntryType == "int32") {
-                        faceEntryType_ = ValueTypeINT32;
-                    } else if (listEntryType == "int") {
-                        faceEntryType_ = ValueTypeINT;
-                    } else {
-                        omerr() << "Unsupported Entry type for face list: " << listEntryType << std::endl;
+              if (listIndexType == "uint8") {
+                indexType = ValueTypeUINT8;
+              } else if (listIndexType == "uchar") {
+                indexType = ValueTypeUCHAR;
+              } else {
+                omerr() << "Unsupported Index type for property list: " << listIndexType << std::endl;
+                continue;
+              }
+
+              entryType = get_property_type(listEntryType, listEntryType);
+
+              if (entryType == Unsupported) {
+                omerr() << "Unsupported Entry type for property list: " << listEntryType << std::endl;
+              }
+
+                PropertyInfo property(CUSTOM_PROP, entryType, propertyName);
+                property.listIndexType = indexType;
+
+                // just 2 elements supported by now
+                if (elementName == "vertex" && !options_.is_binary())
+                {
+                  vertexProperties_.push_back(property);
+                }
+                else if (elementName == "face")
+                {
+                  // special case for vertex indices, also needed by the binary version
+                  if (propertyName == "vertex_index" || propertyName == "vertex_indices")
+                  {
+                    property.property = VERTEX_INDICES;
+                    if (!faceProperties_.empty())
+                    {
+                      omerr() << "Custom face Properties defined, before 'vertex_indices' property was defined. They will be skipped" << std::endl;
+                      faceProperties_.clear();
                     }
+                    faceProperties_.push_back(property);
+                  }else
+                  {
+                    if (!options_.is_binary())
+                      faceProperties_.push_back(property);
+                    else
+                      omerr() << "Custom list properties per face not supported with binary files" << std::endl;
+                  }
 
                 }
+                else
+                  omerr() << "property " << propertyName << " belongs to unsupported element " << elementName << std::endl;
+
             } else {
-                // as this is not a list property, read second value of property
-                _is >> tmp2;
+              // as this is not a list property, read second value of property
+              _is >> tmp2;
 
-                if (elementName == "vertex") {
-                    // Extract name and type of property
-                    // As the order seems to be different in some files, autodetect it.
-                    ValueType valueType = get_property_type(tmp1, tmp2);
-                    propertyName = get_property_name(tmp1, tmp2);
 
-                    if (propertyName == "x") {
-                        std::pair<VertexProperty, ValueType> entry(XCOORD, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        vertexDimension_++;
-                    } else if (propertyName == "y") {
-                        std::pair<VertexProperty, ValueType> entry(YCOORD, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        vertexDimension_++;
-                    } else if (propertyName == "z") {
-                        std::pair<VertexProperty, ValueType> entry(ZCOORD, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        vertexDimension_++;
-                    } else if (propertyName == "nx") {
-                        std::pair<VertexProperty, ValueType> entry(XNORM, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexNormal;
-                    } else if (propertyName == "ny") {
-                        std::pair<VertexProperty, ValueType> entry(YNORM, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexNormal;
-                    } else if (propertyName == "nz") {
-                        std::pair<VertexProperty, ValueType> entry(ZNORM, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexNormal;
-                    } else if (propertyName == "u" || propertyName == "s") {
-                        std::pair<VertexProperty, ValueType> entry(TEXX, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexTexCoord;
-                    } else if (propertyName == "v" || propertyName == "t") {
-                        std::pair<VertexProperty, ValueType> entry(TEXY, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexTexCoord;
-                    } else if (propertyName == "red") {
-                        std::pair<VertexProperty, ValueType> entry(COLORRED, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexColor;
-                    } else if (propertyName == "green") {
-                        std::pair<VertexProperty, ValueType> entry(COLORGREEN, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexColor;
-                    } else if (propertyName == "blue") {
-                        std::pair<VertexProperty, ValueType> entry(COLORBLUE, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexColor;
-                    } else if (propertyName == "diffuse_red") {
-                      std::pair<VertexProperty, ValueType> entry(COLORRED, valueType);
-                      vertexPropertyMap_[vertexPropertyCount_] = entry;
-                      options_ += Options::VertexColor;
-                    } else if (propertyName == "diffuse_green") {
-                      std::pair<VertexProperty, ValueType> entry(COLORGREEN, valueType);
-                      vertexPropertyMap_[vertexPropertyCount_] = entry;
-                      options_ += Options::VertexColor;
-                    } else if (propertyName == "diffuse_blue") {
-                      std::pair<VertexProperty, ValueType> entry(COLORBLUE, valueType);
-                      vertexPropertyMap_[vertexPropertyCount_] = entry;
-                      options_ += Options::VertexColor;                        
-                    } else if (propertyName == "alpha") {
-                        std::pair<VertexProperty, ValueType> entry(COLORALPHA, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        options_ += Options::VertexColor;
-                        options_ += Options::ColorAlpha;
-                    } else {
-                        std::pair<VertexProperty, ValueType> entry(UNSUPPORTED, valueType);
-                        vertexPropertyMap_[vertexPropertyCount_] = entry;
-                        std::cerr << "Unsupported property : " << propertyName << std::endl;
-                    }
+              // Extract name and type of property
+              // As the order seems to be different in some files, autodetect it.
+              ValueType valueType = get_property_type(tmp1, tmp2);
+              propertyName = get_property_name(tmp1, tmp2);
 
-                    vertexPropertyCount_++;
+              PropertyInfo entry;
 
-                } else if (elementName == "face") {
-                    omerr() << "Properties not supported for faces " << std::endl;
+              //special treatment for some vertex properties.
+              if (elementName == "vertex") {
+                if (propertyName == "x") {
+                  entry = PropertyInfo(XCOORD, valueType);
+                  vertexDimension_++;
+                } else if (propertyName == "y") {
+                  entry = PropertyInfo(YCOORD, valueType);
+                  vertexDimension_++;
+                } else if (propertyName == "z") {
+                  entry = PropertyInfo(ZCOORD, valueType);
+                  vertexDimension_++;
+                } else if (propertyName == "nx") {
+                  entry = PropertyInfo(XNORM, valueType);
+                  options_ += Options::VertexNormal;
+                } else if (propertyName == "ny") {
+                  entry = PropertyInfo(YNORM, valueType);
+                  options_ += Options::VertexNormal;
+                } else if (propertyName == "nz") {
+                  entry = PropertyInfo(ZNORM, valueType);
+                  options_ += Options::VertexNormal;
+                } else if (propertyName == "u" || propertyName == "s") {
+                  entry = PropertyInfo(TEXX, valueType);
+                  options_ += Options::VertexTexCoord;
+                } else if (propertyName == "v" || propertyName == "t") {
+                  entry = PropertyInfo(TEXY, valueType);
+                  options_ += Options::VertexTexCoord;
+                } else if (propertyName == "red") {
+                  entry = PropertyInfo(COLORRED, valueType);
+                  options_ += Options::VertexColor;
+                  if (valueType == ValueTypeFLOAT || valueType == ValueTypeFLOAT32)
+                    options_ += Options::ColorFloat;
+                } else if (propertyName == "green") {
+                  entry = PropertyInfo(COLORGREEN, valueType);
+                  options_ += Options::VertexColor;
+                  if (valueType == ValueTypeFLOAT || valueType == ValueTypeFLOAT32)
+                    options_ += Options::ColorFloat;
+                } else if (propertyName == "blue") {
+                  entry = PropertyInfo(COLORBLUE, valueType);
+                  options_ += Options::VertexColor;
+                  if (valueType == ValueTypeFLOAT || valueType == ValueTypeFLOAT32)
+                    options_ += Options::ColorFloat;
+                } else if (propertyName == "diffuse_red") {
+                  entry = PropertyInfo(COLORRED, valueType);
+                  options_ += Options::VertexColor;
+                  if (valueType == ValueTypeFLOAT || valueType == ValueTypeFLOAT32)
+                    options_ += Options::ColorFloat;
+                } else if (propertyName == "diffuse_green") {
+                  entry = PropertyInfo(COLORGREEN, valueType);
+                  options_ += Options::VertexColor;
+                  if (valueType == ValueTypeFLOAT || valueType == ValueTypeFLOAT32)
+                    options_ += Options::ColorFloat;
+                } else if (propertyName == "diffuse_blue") {
+                  entry = PropertyInfo(COLORBLUE, valueType);
+                  options_ += Options::VertexColor;
+                  if (valueType == ValueTypeFLOAT || valueType == ValueTypeFLOAT32)
+                    options_ += Options::ColorFloat;
+                } else if (propertyName == "alpha") {
+                  entry = PropertyInfo(COLORALPHA, valueType);
+                  options_ += Options::VertexColor;
+                  options_ += Options::ColorAlpha;
+                  if (valueType == ValueTypeFLOAT || valueType == ValueTypeFLOAT32)
+                    options_ += Options::ColorFloat;
                 }
+              }
+
+              //not a special property, load as custom
+              if (entry.value == Unsupported){
+                Property prop = (!options_.is_binary()) ? CUSTOM_PROP : UNSUPPORTED; // loading vertex properties is not yet supported by the binary loader
+                if (prop != UNSUPPORTED)
+                  options_ += Options::Custom;
+                else
+                  omerr() << "Custom Properties not supported in binary files. Skipping" << std::endl;
+                entry  = PropertyInfo(prop, valueType, propertyName);
+              }
+
+              if (entry.property != UNSUPPORTED)
+              {
+                if (elementName == "vertex")
+                  vertexProperties_.push_back(entry);
+                else if (elementName == "face")
+                  faceProperties_.push_back(entry);
+                else
+                  omerr() << "Properties not supported in element " << elementName << std::endl;
+              }
 
             }
 

@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -134,12 +141,12 @@ MeshViewerWidgetT<M>::open_mesh(const char* _filename, IO::Options _opt)
     
     Vec3f bbMin, bbMax;
     
-    bbMin = bbMax = OpenMesh::vector_cast<Vec3f>(mesh_.point(vIt));
+    bbMin = bbMax = OpenMesh::vector_cast<Vec3f>(mesh_.point(*vIt));
     
     for (size_t count=0; vIt!=vEnd; ++vIt, ++count)
     {
-      bbMin.minimize( OpenMesh::vector_cast<Vec3f>(mesh_.point(vIt)));
-      bbMax.maximize( OpenMesh::vector_cast<Vec3f>(mesh_.point(vIt)));
+      bbMin.minimize( OpenMesh::vector_cast<Vec3f>(mesh_.point(*vIt)));
+      bbMax.maximize( OpenMesh::vector_cast<Vec3f>(mesh_.point(*vIt)));
     }
     
     
@@ -164,10 +171,10 @@ MeshViewerWidgetT<M>::open_mesh(const char* _filename, IO::Options _opt)
       for (;f_it != mesh_.faces_end(); ++f_it)
       {
         typename Mesh::Point v(0,0,0);
-        for( fv_it=mesh_.fv_iter(f_it); fv_it; ++fv_it)
-          v += OpenMesh::vector_cast<typename Mesh::Normal>(mesh_.point(fv_it));
+        for( fv_it=mesh_.fv_iter(*f_it); fv_it.is_valid(); ++fv_it)
+          v += OpenMesh::vector_cast<typename Mesh::Normal>(mesh_.point(*fv_it));
         v *= 1.0f/3.0f;
-        mesh_.property( fp_normal_base_, f_it ) = v;
+        mesh_.property( fp_normal_base_, *f_it ) = v;
       }
       t.stop();
       std::clog << "Computed base point for displaying face normals [" 
@@ -322,12 +329,12 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
      glBegin(GL_TRIANGLES);
      for (; fIt!=fEnd; ++fIt)
      {
-        fvIt = mesh_.cfv_iter(fIt.handle()); 
-        glVertex3fv( &mesh_.point(fvIt)[0] );
+        fvIt = mesh_.cfv_iter(*fIt);
+        glVertex3fv( &mesh_.point(*fvIt)[0] );
         ++fvIt;
-        glVertex3fv( &mesh_.point(fvIt)[0] );
+        glVertex3fv( &mesh_.point(*fvIt)[0] );
         ++fvIt;
-        glVertex3fv( &mesh_.point(fvIt)[0] );
+        glVertex3fv( &mesh_.point(*fvIt)[0] );
      }
      glEnd();
   }
@@ -337,14 +344,14 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
     glBegin(GL_TRIANGLES);
     for (; fIt!=fEnd; ++fIt)
     {
-      glNormal3fv( &mesh_.normal(fIt)[0] );
+      glNormal3fv( &mesh_.normal(*fIt)[0] );
       
-      fvIt = mesh_.cfv_iter(fIt.handle()); 
-      glVertex3fv( &mesh_.point(fvIt)[0] );
+      fvIt = mesh_.cfv_iter(*fIt);
+      glVertex3fv( &mesh_.point(*fvIt)[0] );
       ++fvIt;
-      glVertex3fv( &mesh_.point(fvIt)[0] );
+      glVertex3fv( &mesh_.point(*fvIt)[0] );
       ++fvIt;
-      glVertex3fv( &mesh_.point(fvIt)[0] );      
+      glVertex3fv( &mesh_.point(*fvIt)[0] );
     }
     glEnd();
     
@@ -371,12 +378,12 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
     glBegin(GL_TRIANGLES);
     for (; fIt!=fEnd; ++fIt)
     {
-      fvIt = mesh_.cfv_iter(fIt.handle()); 
-      glArrayElement(fvIt.handle().idx());
+      fvIt = mesh_.cfv_iter(*fIt);
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
     }
     glEnd();
     
@@ -407,12 +414,12 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
     glBegin(GL_TRIANGLES);
     for (; fIt!=fEnd; ++fIt)
     {
-      fvIt = mesh_.cfv_iter(fIt.handle()); 
-      glArrayElement(fvIt.handle().idx());
+      fvIt = mesh_.cfv_iter(*fIt);
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
     }
     glEnd();
     
@@ -433,14 +440,14 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
     glBegin(GL_TRIANGLES);
     for (; fIt!=fEnd; ++fIt)
     {
-      glColor( fIt.handle() );
+      glColor( *fIt );
 
-      fvIt = mesh_.cfv_iter(fIt.handle()); 
-      glArrayElement(fvIt.handle().idx());
+      fvIt = mesh_.cfv_iter(*fIt);
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
     }
     glEnd();
     
@@ -460,14 +467,14 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
     glBegin(GL_TRIANGLES);
     for (; fIt!=fEnd; ++fIt)
     {
-      glMaterial( fIt.handle() );
+      glMaterial( *fIt );
 
-      fvIt = mesh_.cfv_iter(fIt.handle()); 
-      glArrayElement(fvIt.handle().idx());
+      fvIt = mesh_.cfv_iter(*fIt);
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
       ++fvIt;
-      glArrayElement(fvIt.handle().idx());
+      glArrayElement(fvIt->idx());
     }
     glEnd();
     
@@ -500,7 +507,7 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
     for (; strip_it!=strip_last; ++strip_it)
     {
       glDrawElements(GL_TRIANGLE_STRIP, 
-		     strip_it->size(), GL_UNSIGNED_INT, &(*strip_it)[0] );
+          static_cast<GLsizei>(strip_it->size()), GL_UNSIGNED_INT, &(*strip_it)[0] );
     }
 
     glDisableClientState(GL_VERTEX_ARRAY);
@@ -554,7 +561,7 @@ MeshViewerWidgetT<M>::draw_openmesh(const std::string& _draw_mode)
       glColorPointer(3, GL_UNSIGNED_BYTE, 0, mesh_.vertex_colors());
     }
 
-    glDrawArrays( GL_POINTS, 0, mesh_.n_vertices() );
+    glDrawArrays( GL_POINTS, 0, static_cast<GLsizei>(mesh_.n_vertices()) );
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
   }
@@ -665,8 +672,8 @@ MeshViewerWidgetT<M>::draw_scene(const std::string& _draw_mode)
     glColor3f(1.000f, 0.803f, 0.027f); // orange
     for(vit=mesh_.vertices_begin(); vit!=mesh_.vertices_end(); ++vit)
     {
-      glVertex( vit );
-      glVertex( mesh_.point( vit ) + normal_scale_*mesh_.normal( vit ) );
+      glVertex( *vit );
+      glVertex( mesh_.point( *vit ) + normal_scale_*mesh_.normal( *vit ) );
     }
     glEnd();
   }
@@ -679,9 +686,9 @@ MeshViewerWidgetT<M>::draw_scene(const std::string& _draw_mode)
     glColor3f(0.705f, 0.976f, 0.270f); // greenish
     for(fit=mesh_.faces_begin(); fit!=mesh_.faces_end(); ++fit)
     {
-      glVertex( mesh_.property(fp_normal_base_, fit) );
-      glVertex( mesh_.property(fp_normal_base_, fit) + 
-                normal_scale_*mesh_.normal( fit ) );
+      glVertex( mesh_.property(fp_normal_base_, *fit) );
+      glVertex( mesh_.property(fp_normal_base_, *fit) +
+                normal_scale_*mesh_.normal( *fit ) );
     }
     glEnd();
   }

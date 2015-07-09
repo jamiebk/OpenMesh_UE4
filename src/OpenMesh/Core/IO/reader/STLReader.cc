@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
  *---------------------------------------------------------------------------*
- *  This file is part of OpenMesh.                                           *
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *
@@ -115,14 +122,14 @@ read(const std::string& _filename, BaseImporter& _bi, Options& _opt)
   {
     case STLA:
     {
-      result = read_stla(_filename, _bi);
+      result = read_stla(_filename, _bi, _opt);
       _opt -= Options::Binary;
       break;
     }
 
     case STLB:
     {
-      result = read_stlb(_filename, _bi);
+      result = read_stlb(_filename, _bi, _opt);
       _opt += Options::Binary;
       break;
     }
@@ -144,9 +151,14 @@ _STLReader_::read(std::istream& _is,
 		 Options& _opt)
 {
 
-    omerr() << "[OMReader] : STL Streams are not supported " << std::endl;
+  bool result = false;
 
-  return false;
+  if (_opt & Options::Binary)
+    result = read_stlb(_is, _bi, _opt);
+  else
+    result = read_stla(_is, _bi, _opt);
+
+  return result;
 }
 
 
@@ -199,10 +211,8 @@ void trimStdString( std::string& _string) {
 
 bool
 _STLReader_::
-read_stla(const std::string& _filename, BaseImporter& _bi) const
+read_stla(const std::string& _filename, BaseImporter& _bi, Options& _opt) const
 {
-  omlog() << "[STLReader] : read ascii file\n";
-
   std::fstream in( _filename.c_str(), std::ios_base::in );
 
   if (!in)
@@ -213,11 +223,24 @@ read_stla(const std::string& _filename, BaseImporter& _bi) const
     return false;
   }
 
+  bool res = read_stla(in, _bi, _opt);
+
+  if (in)
+    in.close();
+
+  return res;
+}
+
+//-----------------------------------------------------------------------------
+
+bool
+_STLReader_::
+read_stla(std::istream& _in, BaseImporter& _bi, Options& _opt) const
+{
 
   unsigned int               i;
   OpenMesh::Vec3f            v;
   OpenMesh::Vec3f            n;
-  unsigned int               cur_idx(0);
   BaseImporter::VHandles     vhandles;
 
   CmpVec comp(eps_);
@@ -226,15 +249,14 @@ read_stla(const std::string& _filename, BaseImporter& _bi) const
 
   std::string line;
 
-  bool normal = false;
+  bool facet_normal(false);
 
-  while( in && !in.eof() ) {
+  while( _in && !_in.eof() ) {
 
     // Get one line
-    std::getline(in,line);
-    if ( in.bad() ){
-      omerr() << "  Warning! Could not read file properly!\n";
-      in.close();
+    std::getline(_in, line);
+    if ( _in.bad() ){
+      omerr() << "  Warning! Could not read stream properly!\n";
       return false;
     }
 
@@ -257,7 +279,7 @@ read_stla(const std::string& _filename, BaseImporter& _bi) const
       strstream >> n[1];
       strstream >> n[2];
 
-      normal = true;
+      facet_normal = true;
     }
 
     // Detected a triangle
@@ -267,7 +289,7 @@ read_stla(const std::string& _filename, BaseImporter& _bi) const
 
       for (i=0; i<3; ++i) {
         // Get one vertex
-        std::getline(in,line);
+        std::getline(_in, line);
         trimStdString(line);
 
         std::stringstream strstream(line);
@@ -283,9 +305,9 @@ read_stla(const std::string& _filename, BaseImporter& _bi) const
         if ((vMapIt=vMap.find(v)) == vMap.end())
         {
           // No : add vertex and remember idx/vector mapping
-          _bi.add_vertex(v);
-          vhandles.push_back(VertexHandle(cur_idx));
-          vMap[v] = VertexHandle(cur_idx++);
+          VertexHandle handle = _bi.add_vertex(v);
+          vhandles.push_back(handle);
+          vMap[v] = handle;
         }
         else
           // Yes : get index from map
@@ -301,29 +323,30 @@ read_stla(const std::string& _filename, BaseImporter& _bi) const
 
         FaceHandle fh = _bi.add_face(vhandles);
 
+        // set the normal if requested
+        // if a normal was requested but could not be found we unset the option
+        if (facet_normal) {
+          if (fh.is_valid() && _opt.face_has_normal())
+            _bi.set_normal(fh, n);
+        } else
+          _opt -= Options::FaceNormal;
       }
 
-      normal = false;
+      facet_normal = false;
     }
   }
-
-  if (in)
-    in.close();
 
   return true;
 }
 
-
 //-----------------------------------------------------------------------------
-
 
 bool
 _STLReader_::
-read_stlb(const std::string& _filename, BaseImporter& _bi) const
+read_stlb(const std::string& _filename, BaseImporter& _bi, Options& _opt) const
 {
-  omlog() << "[STLReader] : read binary file\n";
+  std::fstream in( _filename.c_str(), std::ios_base::in | std::ios_base::binary);
 
-  FILE*  in = fopen(_filename.c_str(), "rb");
   if (!in)
   {
     omerr() << "[STLReader] : cannot not open file "
@@ -332,12 +355,24 @@ read_stlb(const std::string& _filename, BaseImporter& _bi) const
     return false;
   }
 
+  bool res = read_stlb(in, _bi, _opt);
 
+  if (in)
+    in.close();
+
+  return res;
+}
+
+//-----------------------------------------------------------------------------
+
+bool
+_STLReader_::
+read_stlb(std::istream& _in, BaseImporter& _bi, Options& _opt) const
+{
   char                       dummy[100];
   bool                       swapFlag;
   unsigned int               i, nT;
-  OpenMesh::Vec3f            v;
-  unsigned int               cur_idx(0);
+  OpenMesh::Vec3f            v, n;
   BaseImporter::VHandles     vhandles;
 
   std::map<Vec3f, VertexHandle, CmpVec>  vMap;
@@ -356,56 +391,58 @@ read_stlb(const std::string& _filename, BaseImporter& _bi) const
   swapFlag = (endian_test.c[3] == 1);
 
   // read number of triangles
-  fread(dummy, 1, 80, in);
-  nT = read_int(in, swapFlag);
+  _in.read(dummy, 80);
+  nT = read_int(_in, swapFlag);
 
   // read triangles
   while (nT)
   {
     vhandles.clear();
 
-    // skip triangle normal
-    fread(dummy, 1, 12, in);
+    // read triangle normal
+    n[0] = read_float(_in, swapFlag);
+    n[1] = read_float(_in, swapFlag);
+    n[2] = read_float(_in, swapFlag);
 
     // triangle's vertices
     for (i=0; i<3; ++i)
     {
-      v[0] = read_float(in, swapFlag);
-      v[1] = read_float(in, swapFlag);
-      v[2] = read_float(in, swapFlag);
+      v[0] = read_float(_in, swapFlag);
+      v[1] = read_float(_in, swapFlag);
+      v[2] = read_float(_in, swapFlag);
 
       // has vector been referenced before?
       if ((vMapIt=vMap.find(v)) == vMap.end())
       {
-	// No : add vertex and remember idx/vector mapping
-	_bi.add_vertex(v);
-	vhandles.push_back(VertexHandle(cur_idx));
-	vMap[v] = VertexHandle(cur_idx++);
+        // No : add vertex and remember idx/vector mapping
+        VertexHandle handle = _bi.add_vertex(v);
+        vhandles.push_back(handle);
+        vMap[v] = handle;
       }
       else
-	// Yes : get index from map
-	vhandles.push_back(vMapIt->second);
+        // Yes : get index from map
+        vhandles.push_back(vMapIt->second);
     }
 
 
     // Add face only if it is not degenerated
     if ((vhandles[0] != vhandles[1]) &&
 	(vhandles[0] != vhandles[2]) &&
-	(vhandles[1] != vhandles[2]))
-      _bi.add_face(vhandles);
+	(vhandles[1] != vhandles[2])) {
+      FaceHandle fh = _bi.add_face(vhandles);
 
-    fread(dummy, 1, 2, in);
+      if (fh.is_valid() && _opt.face_has_normal())
+        _bi.set_normal(fh, n);
+    }
+
+    _in.read(dummy, 2);
     --nT;
   }
-
-  fclose(in);
 
   return true;
 }
 
-
 //-----------------------------------------------------------------------------
-
 
 _STLReader_::STL_Type
 _STLReader_::

@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -293,7 +300,7 @@ int main(int argc, char **argv)
   {
     open_prog_mesh(ifname);
     vdpm_analysis();
-    save_vd_prog_mesh(spmfname.c_str());
+    save_vd_prog_mesh(spmfname);
   }
   catch( std::bad_alloc& )
   {
@@ -430,11 +437,11 @@ open_prog_mesh(const std::string& _filename)
 
   Mesh::Point bbMin, bbMax;
 
-  bbMin = bbMax = mesh_.point(vIt);
+  bbMin = bbMax = mesh_.point(*vIt);
   for (; vIt!=vEnd; ++vIt)
   {
-    bbMin.minimize(mesh_.point(vIt));
-    bbMax.maximize(mesh_.point(vIt));
+    bbMin.minimize(mesh_.point(*vIt));
+    bbMax.maximize(mesh_.point(*vIt));
   }
 
   // info
@@ -508,7 +515,7 @@ save_vd_prog_mesh(const std::string &_filename)
 
  
   for (f_it=mesh_.faces_begin(); f_it!=mesh_.faces_end(); ++f_it) {
-    hh = mesh_.halfedge_handle(f_it.handle());
+    hh = mesh_.halfedge_handle(*f_it);
     vh = mesh_.to_vertex_handle(hh);
     fvi[0] = handle2index_map[vh];
 
@@ -660,16 +667,16 @@ vdpm_analysis()
   // initialize
   for (h_it=mesh_.halfedges_begin(); h_it!=mesh_.halfedges_end(); ++h_it)
   {
-    vh = mesh_.to_vertex_handle(h_it.handle());    
-    mesh_.data(h_it).set_vhierarchy_leaf_node_handle(mesh_.data(vh).vhierarchy_node_handle());
+    vh = mesh_.to_vertex_handle(*h_it);
+    mesh_.data(*h_it).set_vhierarchy_leaf_node_handle(mesh_.data(vh).vhierarchy_node_handle());
   }
 
   for (v_it=mesh_.vertices_begin(); v_it!=mesh_.vertices_end(); ++v_it)
   {
     VHierarchyNodeHandle  
-      node_handle = mesh_.data(v_it.handle()).vhierarchy_node_handle();
+      node_handle = mesh_.data(*v_it).vhierarchy_node_handle();
     
-    vhierarchy_.node(node_handle).set_normal(mesh_.normal(v_it.handle()));
+    vhierarchy_.node(node_handle).set_normal(mesh_.normal(*v_it));
   }
   
   std::cout << "Start view-dependent PM analysis" << std::endl;
@@ -808,19 +815,18 @@ void
 compute_cone_of_normals(VHierarchyNodeHandle           node_handle,
 			VHierarchyNodeHandleContainer &leaf_nodes)
 {
-  float                     max_angle, angle;
   Vec3f           n, ln;
   VertexHandle              vh = vhierarchy_.node(node_handle).vertex_handle();
   VHierarchyNodeHandleContainer::iterator  n_it, n_end(leaf_nodes.end());
 
-  n         = mesh_.calc_vertex_normal(vh);
-  max_angle = 0.0f;
+  n               = mesh_.calc_vertex_normal(vh);
+  float max_angle = 0.0f;
 
   n_it = leaf_nodes.begin();
   while( n_it != n_end )
   {
     ln        = vhierarchy_.node(*n_it).normal();
-    angle     = acosf( dot(n,ln) );
+    const float angle     = acosf( dot(n,ln) );
     max_angle = std::max(max_angle, angle );
 
     ++n_it;
@@ -844,7 +850,6 @@ compute_screen_space_error(VHierarchyNodeHandle node_handle, VHierarchyNodeHandl
   Mesh::VertexHandle    vh;
   Vec3f                 residual, res;
   Vec3f                 lp, tri[3];
-  float                 min_distance;
   float                 s, t;
   VHierarchyNodeHandleContainer::iterator  n_it, n_end(leaf_nodes.end());
 
@@ -855,11 +860,11 @@ compute_screen_space_error(VHierarchyNodeHandle node_handle, VHierarchyNodeHandl
     // compute residual of a leaf-vertex from the current mesh_
     vh = vhierarchy_.node(node_handle).vertex_handle();
     residual = lp - mesh_.point(vh);
-    min_distance = residual.length();
+    float min_distance = residual.length();
 
-    for (vf_it=mesh_.vf_iter(vh); vf_it; ++vf_it)
+    for (vf_it=mesh_.vf_iter(vh); vf_it.is_valid(); ++vf_it)
     {
-      heh    = mesh_.halfedge_handle(vf_it.handle());
+      heh    = mesh_.halfedge_handle(*vf_it);
       tri[0] = mesh_.point(mesh_.to_vertex_handle(heh));
       heh    = mesh_.next_halfedge_handle(heh);
       tri[1] = mesh_.point(mesh_.to_vertex_handle(heh));
@@ -912,18 +917,16 @@ compute_mue_sigma(VHierarchyNodeHandle node_handle,
     float  ratio = std::max(1.0f, max_inner/max_cross);
     float  whole_degree = acosf(1.0f/ratio);
     float  mue, max_mue;
-    float  degree;
-    float  res_length;
     Vec3f  res;
 
     max_mue = 0.0f;
     for (r_it = residuals.begin(); r_it != r_end; ++r_it)
     {
       res = *r_it;
-      res_length = res.length();
+      float res_length = res.length();
 
       // TODO: take care when res.length() is too small
-      degree = acosf(dot(vn,res) / res_length);
+      float degree = acosf(dot(vn,res) / res_length);
 
       if (degree < 0.0f)    degree = -degree;
       if (degree > float(M_PI_2))  degree = float(M_PI) - degree;

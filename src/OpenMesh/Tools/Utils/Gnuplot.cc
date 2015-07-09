@@ -30,6 +30,7 @@
 #include <fstream>
 #include <sstream>
 #include <list>
+#include <algorithm>
 
 #if defined(WIN32)
 #  define pclose _pclose
@@ -203,7 +204,7 @@ Gnuplot::~Gnuplot()
 
 // ----------------------------------------------------------------------------
 
-bool Gnuplot::get_program_path(const string pname)
+bool Gnuplot::get_program_path(const string& pname)
 {
   list<string> ls;
   char *path;

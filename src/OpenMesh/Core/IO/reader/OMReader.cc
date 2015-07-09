@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
  *---------------------------------------------------------------------------*
- *  This file is part of OpenMesh.                                           *
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *
@@ -44,6 +51,8 @@
 
 
 //STL
+#include <vector>
+#include <istream>
 #include <fstream>
 
 // OpenMesh
@@ -89,9 +98,17 @@ bool _OMReader_::read(const std::string& _filename, BaseImporter& _bi, Options& 
     return false;
 
   _opt += Options::Binary; // only binary format supported!
+  fileOptions_ = Options::Binary;
 
   // Open file
   std::ifstream ifs(_filename.c_str(), std::ios::binary);
+
+  /* Clear formatting flag skipws (Skip whitespaces). If set, operator>> will
+   * skip bytes set to whitespace chars (e.g. 0x20 bytes) in
+   * Property<bool>::restore.
+   */
+  ifs.unsetf(std::ios::skipws);
+
   if (!ifs.is_open() || !ifs.good()) {
     omerr() << "[OMReader] : cannot not open file " << _filename << std::endl;
     return false;
@@ -102,6 +119,8 @@ bool _OMReader_::read(const std::string& _filename, BaseImporter& _bi, Options& 
 
   // close input stream
   ifs.close();
+
+  _opt = _opt & fileOptions_;
 
   return result;
 }
@@ -116,6 +135,7 @@ bool _OMReader_::read(std::istream& _is, BaseImporter& _bi, Options& _opt)
     return false;
 
   _opt += Options::Binary; // only binary format supported!
+  fileOptions_ = Options::Binary;
 
   if (!_is.good()) {
     omerr() << "[OMReader] : cannot read from stream " << std::endl;
@@ -127,6 +147,8 @@ bool _OMReader_::read(std::istream& _is, BaseImporter& _bi, Options& _opt)
 
   if (result)
     _opt += Options::Binary;
+
+  _opt = _opt & fileOptions_;
 
   return result;
 }
@@ -153,7 +175,6 @@ bool _OMReader_::read_binary(std::istream& _is, BaseImporter& _bi, Options& _opt
 
   bytes_ += restore(_is, header_, swap);
 
-  size_t data_bytes;
 
   while (!_is.eof()) {
     bytes_ += restore(_is, chunk_header_, swap);
@@ -169,7 +190,6 @@ bool _OMReader_::read_binary(std::istream& _is, BaseImporter& _bi, Options& _opt
 
     // Read in the property data. If it is an anonymous or unknown named
     // property, then skip data.
-    data_bytes = bytes_;
     switch (chunk_header_.entity_) {
       case OMFormat::Chunk::Entity_Vertex:
         if (!read_binary_vertex_chunk(_is, _bi, _opt, swap))
@@ -194,7 +214,7 @@ bool _OMReader_::read_binary(std::istream& _is, BaseImporter& _bi, Options& _opt
       default:
         return false;
     }
-    data_bytes = bytes_ - data_bytes;
+
   }
 
   // File was successfully parsed.
@@ -289,20 +309,22 @@ bool _OMReader_::read_binary_vertex_chunk(std::istream &_is, BaseImporter &_bi, 
     case Chunk::Type_Normal:
       assert( OMFormat::dimensions(chunk_header_) == size_t(OpenMesh::Vec3f::dim()));
 
-      _opt += Options::VertexNormal;
+      fileOptions_ += Options::VertexNormal;
       for (; vidx < header_.n_vertices_ && !_is.eof(); ++vidx) {
         bytes_ += vector_restore(_is, v3f, _swap);
-        _bi.set_normal(VertexHandle(vidx), v3f);
+        if (fileOptions_.vertex_has_normal() && _opt.vertex_has_normal())
+          _bi.set_normal(VertexHandle(int(vidx)), v3f);
       }
       break;
 
     case Chunk::Type_Texcoord:
       assert( OMFormat::dimensions(chunk_header_) == size_t(OpenMesh::Vec2f::dim()));
 
-      _opt += Options::VertexTexCoord;
+      fileOptions_ += Options::VertexTexCoord;
       for (; vidx < header_.n_vertices_ && !_is.eof(); ++vidx) {
         bytes_ += vector_restore(_is, v2f, _swap);
-        _bi.set_texcoord(VertexHandle(vidx), v2f);
+        if (fileOptions_.vertex_has_texcoord() && _opt.vertex_has_texcoord())
+          _bi.set_texcoord(VertexHandle(int(vidx)), v2f);
       }
       break;
 
@@ -310,11 +332,12 @@ bool _OMReader_::read_binary_vertex_chunk(std::istream &_is, BaseImporter &_bi, 
 
       assert( OMFormat::dimensions(chunk_header_) == 3);
 
-      _opt += Options::VertexColor;
+      fileOptions_ += Options::VertexColor;
 
       for (; vidx < header_.n_vertices_ && !_is.eof(); ++vidx) {
         bytes_ += vector_restore(_is, v3uc, _swap);
-        _bi.set_color(VertexHandle(vidx), v3uc);
+        if (fileOptions_.vertex_has_color() && _opt.vertex_has_color())
+          _bi.set_color(VertexHandle(int(vidx)), v3uc);
       }
       break;
 
@@ -375,7 +398,7 @@ bool _OMReader_::read_binary_face_chunk(std::istream &_is, BaseImporter &_bi, Op
         for (size_t j = 0; j < nV; ++j) {
           bytes_ += restore(_is, vidx, Chunk::Integer_Size(chunk_header_.bits_), _swap);
 
-          vhandles.push_back(VertexHandle(vidx));
+          vhandles.push_back(VertexHandle(int(vidx)));
         }
 
         _bi.add_face(vhandles);
@@ -386,10 +409,11 @@ bool _OMReader_::read_binary_face_chunk(std::istream &_is, BaseImporter &_bi, Op
     case Chunk::Type_Normal:
       assert( OMFormat::dimensions(chunk_header_) == size_t(OpenMesh::Vec3f::dim()));
 
-      _opt += Options::FaceNormal;
+      fileOptions_ += Options::FaceNormal;
       for (; fidx < header_.n_faces_ && !_is.eof(); ++fidx) {
         bytes_ += vector_restore(_is, v3f, _swap);
-        _bi.set_normal(FaceHandle(fidx), v3f);
+        if( fileOptions_.face_has_normal() && _opt.face_has_normal())
+          _bi.set_normal(FaceHandle(int(fidx)), v3f);
       }
       break;
 
@@ -397,10 +421,11 @@ bool _OMReader_::read_binary_face_chunk(std::istream &_is, BaseImporter &_bi, Op
 
       assert( OMFormat::dimensions(chunk_header_) == 3);
 
-      _opt += Options::FaceColor;
+      fileOptions_ += Options::FaceColor;
       for (; fidx < header_.n_faces_ && !_is.eof(); ++fidx) {
         bytes_ += vector_restore(_is, v3uc, _swap);
-        _bi.set_color(FaceHandle(fidx), v3uc);
+        if( fileOptions_.face_has_color() && _opt.face_has_color())
+          _bi.set_color(FaceHandle(int(fidx)), v3uc);
       }
       break;
 
@@ -521,7 +546,7 @@ size_t _OMReader_::restore_binary_custom_data(std::istream& _is, BaseProperty* _
   Chunk::esize_t block_size;
   Chunk::PropertyName custom_prop;
 
-  bytes += binary<Chunk::esize_t>::restore(_is, block_size, _swap);
+  bytes += restore(_is, block_size, OMFormat::Chunk::Integer_32, _swap);
 
   if (_bp) {
     size_t n_bytes = _bp->size_of(_n_elem);

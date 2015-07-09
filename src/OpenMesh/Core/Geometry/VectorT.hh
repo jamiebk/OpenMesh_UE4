@@ -1,36 +1,44 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
+
 
 /*===========================================================================*\
  *                                                                           *             
@@ -61,10 +69,10 @@
 
 
 #include <OpenMesh/Core/System/config.h>
-#include <iostream>
-#include <assert.h>
-#include <math.h>
-#include <string.h>
+#include <ostream>
+#include <cmath>
+#include <cassert>
+#include <cstring>
 
 #if defined(__GNUC__) && defined(__SSE__)
 #include <xmmintrin.h>
@@ -178,7 +186,27 @@ template <> struct VectorDataT<float, 4>
 #undef  unroll
 #undef  unroll_comb
 #undef  unroll_csv
+    
+#define DIM                    5
+#define unroll(expr)           expr(0) expr(1) expr(2) expr(3) expr(4)
+#define unroll_comb(expr, op)  expr(0) op expr(1) op expr(2) op expr(3) op expr(4)
+#define unroll_csv(expr)       expr(0), expr(1), expr(2), expr(3), expr(4)
+#include "VectorT_inc.hh"
+#undef  DIM
+#undef  unroll
+#undef  unroll_comb
+#undef  unroll_csv
 
+#define DIM                    6
+#define unroll(expr)           expr(0) expr(1) expr(2) expr(3) expr(4) expr(5)
+#define unroll_comb(expr, op)  expr(0) op expr(1) op expr(2) op expr(3) op expr(4) op expr(5)
+#define unroll_csv(expr)       expr(0), expr(1), expr(2), expr(3), expr(4), expr(5)
+#include "VectorT_inc.hh"
+#undef  DIM
+#undef  unroll
+#undef  unroll_comb
+#undef  unroll_csv
+    
 
 #undef  TEMPLATE_HEADER
 #undef  CLASSNAME
@@ -222,9 +250,9 @@ VectorT<double,3>::operator%(const VectorT<double,3>& _rhs) const
 
 /// \relates OpenMesh::VectorT
 /// scalar * vector
-template<typename Scalar,int N>
-inline VectorT<Scalar,N> operator*(Scalar _s, const VectorT<Scalar,N>& _v) {
-  return VectorT<Scalar,N>(_v) *= _s;
+template<typename Scalar1, typename Scalar2,int N>
+inline VectorT<Scalar1,N> operator*(Scalar2 _s, const VectorT<Scalar1,N> _v) {
+  return _v*_s;
 }
 
 
@@ -300,6 +328,8 @@ typedef VectorT<unsigned int,3> Vec3ui;
 typedef VectorT<float,3> Vec3f;
 /** 3-double vector */
 typedef VectorT<double,3> Vec3d;
+/** 3-bool vector */
+typedef VectorT<bool,3> Vec3b;
 
 /** 4-byte signed vector */
 typedef VectorT<signed char,4> Vec4c;
@@ -317,6 +347,23 @@ typedef VectorT<unsigned int,4> Vec4ui;
 typedef VectorT<float,4> Vec4f;
 /** 4-double vector */
 typedef VectorT<double,4> Vec4d;
+
+/** 5-byte signed vector */
+typedef VectorT<signed char, 5> Vec5c;
+/** 5-byte unsigned vector */
+typedef VectorT<unsigned char, 5> Vec5uc;
+/** 5-short signed vector */
+typedef VectorT<signed short int, 5> Vec5s;
+/** 5-short unsigned vector */
+typedef VectorT<unsigned short int, 5> Vec5us;
+/** 5-int signed vector */
+typedef VectorT<signed int, 5> Vec5i;
+/** 5-int unsigned vector */
+typedef VectorT<unsigned int, 5> Vec5ui;
+/** 5-float vector */
+typedef VectorT<float, 5> Vec5f;
+/** 5-double vector */
+typedef VectorT<double, 5> Vec5d;
 
 /** 6-byte signed vector */
 typedef VectorT<signed char,6> Vec6c;

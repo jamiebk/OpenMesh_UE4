@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
  *---------------------------------------------------------------------------*
- *  This file is part of OpenMesh.                                           *
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *
@@ -49,8 +56,11 @@
 #include <OpenMesh/Core/IO/IOManager.hh>
 #include <OpenMesh/Core/IO/BinaryHelper.hh>
 #include <OpenMesh/Core/IO/writer/PLYWriter.hh>
+#include <OpenMesh/Core/Utils/GenProg.hh>
 
 #include <OpenMesh/Core/IO/SR_store.hh>
+
+#include <iostream>
 
 //=== NAMESPACES ==============================================================
 
@@ -70,7 +80,20 @@ _PLYWriter_& PLYWriter() { return __PLYWriterInstance; }
 //=== IMPLEMENTATION ==========================================================
 
 
-_PLYWriter_::_PLYWriter_() { IOManager().register_module(this); }
+_PLYWriter_::_PLYWriter_()
+{
+  IOManager().register_module(this);
+
+  nameOfType_[Unsupported]  = "";
+  nameOfType_[ValueTypeCHAR] = "char";
+  nameOfType_[ValueTypeUCHAR] = nameOfType_[ValueTypeUINT8] = "uchar";
+  nameOfType_[ValueTypeUSHORT] = "ushort";
+  nameOfType_[ValueTypeSHORT]  = "short";
+  nameOfType_[ValueTypeUINT]   = "uint";
+  nameOfType_[ValueTypeINT]    = "int";
+  nameOfType_[ValueTypeFLOAT32] = nameOfType_[ValueTypeFLOAT]  = "float";
+  nameOfType_[ValueTypeDOUBLE] = "double";
+}
 
 
 //-----------------------------------------------------------------------------
@@ -78,7 +101,7 @@ _PLYWriter_::_PLYWriter_() { IOManager().register_module(this); }
 
 bool
 _PLYWriter_::
-write(const std::string& _filename, BaseExporter& _be, Options _opt) const
+write(const std::string& _filename, BaseExporter& _be, Options _opt, std::streamsize _precision) const
 {
   // check exporter features
   if ( !check( _be, _opt ) )
@@ -93,7 +116,7 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt) const
     _opt.unset(Options::FaceNormal);
     omerr() << "[PLYWriter] : Warning: Face normals are not supported and thus not exported! " << std::endl;
   }
-  
+
   if ( _opt.check(Options::FaceColor) ) {
     // Face normals are not supported
     // Uncheck these options and output message that
@@ -115,6 +138,9 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt) const
     return false;
   }
 
+  if (!_opt.check(Options::Binary))
+    out.precision(_precision);
+
   // write to file
   bool result = (_opt.check(Options::Binary) ?
      write_binary(out, _be, _opt) :
@@ -130,7 +156,7 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt) const
 
 bool
 _PLYWriter_::
-write(std::ostream& _os, BaseExporter& _be, Options _opt) const
+write(std::ostream& _os, BaseExporter& _be, Options _opt, std::streamsize _precision) const
 {
   // check exporter features
   if ( !check( _be, _opt ) )
@@ -143,7 +169,7 @@ write(std::ostream& _os, BaseExporter& _be, Options _opt) const
 
   options_ = _opt;
 
-                                                        
+
   if (!_os.good())
   {
     omerr() << "[PLYWriter] : cannot write to stream "
@@ -151,12 +177,184 @@ write(std::ostream& _os, BaseExporter& _be, Options _opt) const
     return false;
   }
 
+  if (!_opt.check(Options::Binary))
+    _os.precision(_precision);
+
   // write to file
   bool result = (_opt.check(Options::Binary) ?
      write_binary(_os, _be, _opt) :
      write_ascii(_os, _be, _opt));
 
   return result;
+}
+
+//-----------------------------------------------------------------------------
+
+// helper function for casting a property
+template<typename T>
+const PropertyT<T>* castProperty(const BaseProperty* _prop)
+{
+  return dynamic_cast< const PropertyT<T>* >(_prop);
+}
+
+//-----------------------------------------------------------------------------
+std::vector<_PLYWriter_::CustomProperty> _PLYWriter_::writeCustomTypeHeader(std::ostream& _out, BaseKernel::const_prop_iterator _begin, BaseKernel::const_prop_iterator _end) const
+{
+  std::vector<CustomProperty> customProps;
+  for (;_begin != _end; ++_begin)
+  {
+    BaseProperty* prop = *_begin;
+
+
+    // check, if property is persistant
+    if (!prop->persistent())
+      continue;
+
+
+    // identify type of property
+    CustomProperty cProp(prop);
+    size_t propSize = prop->element_size();
+    switch (propSize)
+    {
+    case 1:
+    {
+      assert_compile(sizeof(char) == 1);
+      //check, if prop is a char or unsigned char by dynamic_cast
+      //char, unsigned char and signed char are 3 distinct types
+      if (castProperty<signed char>(prop) != 0 || castProperty<char>(prop) != 0) //treat char as signed char
+        cProp.type = ValueTypeCHAR;
+      else if (castProperty<unsigned char>(prop) != 0)
+        cProp.type = ValueTypeUCHAR;
+      break;
+    }
+    case 2:
+    {
+      assert_compile (sizeof(short) == 2);
+      if (castProperty<signed short>(prop) != 0)
+        cProp.type = ValueTypeSHORT;
+      else if (castProperty<unsigned short>(prop) != 0)
+        cProp.type = ValueTypeUSHORT;
+      break;
+    }
+    case 4:
+    {
+      assert_compile (sizeof(int) == 4);
+      assert_compile (sizeof(float) == 4);
+      if (castProperty<signed int>(prop) != 0)
+        cProp.type = ValueTypeINT;
+      else if (castProperty<unsigned int>(prop) != 0)
+        cProp.type = ValueTypeUINT;
+      else if (castProperty<float>(prop) != 0)
+        cProp.type = ValueTypeFLOAT;
+      break;
+
+    }
+    case 8:
+      assert_compile (sizeof(double) == 8);
+      if (castProperty<double>(prop) != 0)
+        cProp.type = ValueTypeDOUBLE;
+      break;
+    default:
+      break;
+    }
+
+    if (cProp.type != Unsupported)
+    {
+      // property type was identified and it is persistant, write into header
+      customProps.push_back(cProp);
+      _out << "property " << nameOfType_[cProp.type] << " " << cProp.property->name() << "\n";
+    }
+  }
+  return customProps;
+}
+
+//-----------------------------------------------------------------------------
+
+
+void _PLYWriter_::write_customProp_ascii(std::ostream& _out, const CustomProperty& _prop, size_t _index) const
+{
+  if (_prop.type == ValueTypeCHAR)
+    _out << " " << castProperty<signed char>(_prop.property)->data()[_index];
+  else if (_prop.type == ValueTypeUCHAR || _prop.type == ValueTypeUINT8)
+    _out << " " << castProperty<unsigned char>(_prop.property)->data()[_index];
+  else if (_prop.type == ValueTypeSHORT)
+    _out << " " << castProperty<signed short>(_prop.property)->data()[_index];
+  else if (_prop.type == ValueTypeUSHORT)
+    _out << " " << castProperty<unsigned short>(_prop.property)->data()[_index];
+  else if (_prop.type == ValueTypeUINT)
+    _out << " " << castProperty<unsigned int>(_prop.property)->data()[_index];
+  else if (_prop.type == ValueTypeINT || _prop.type == ValueTypeINT32)
+    _out << " " << castProperty<signed int>(_prop.property)->data()[_index];
+  else if (_prop.type == ValueTypeFLOAT || _prop.type == ValueTypeFLOAT32)
+    _out << " " << castProperty<float>(_prop.property)->data()[_index] ;
+  else if (_prop.type == ValueTypeDOUBLE)
+    _out << " " << castProperty<double>(_prop.property)->data()[_index];
+}
+
+
+//-----------------------------------------------------------------------------
+
+
+
+void _PLYWriter_::write_header(std::ostream& _out, BaseExporter& _be, Options& _opt, std::vector<CustomProperty>& _ovProps, std::vector<CustomProperty>& _ofProps) const {
+  //writing header
+  _out << "ply" << '\n';
+
+  if (_opt.is_binary()) {
+    _out << "format ";
+    if ( options_.check(Options::MSB) )
+      _out << "binary_big_endian ";
+    else
+      _out << "binary_little_endian ";
+    _out << "1.0" << '\n';
+  } else
+    _out << "format ascii 1.0" << '\n';
+
+  _out << "element vertex " << _be.n_vertices() << '\n';
+
+  _out << "property float x" << '\n';
+  _out << "property float y" << '\n';
+  _out << "property float z" << '\n';
+
+  if ( _opt.vertex_has_normal() ){
+    _out << "property float nx" << '\n';
+    _out << "property float ny" << '\n';
+    _out << "property float nz" << '\n';
+  }
+
+  if ( _opt.vertex_has_texcoord() ){
+    _out << "property float u" << '\n';
+    _out << "property float v" << '\n';
+  }
+
+  if ( _opt.vertex_has_color() ){
+    if ( _opt.color_is_float() ) {
+      _out << "property float red" << '\n';
+      _out << "property float green" << '\n';
+      _out << "property float blue" << '\n';
+
+      if ( _opt.color_has_alpha() )
+        _out << "property float alpha" << '\n';
+    } else {
+      _out << "property uchar red" << '\n';
+      _out << "property uchar green" << '\n';
+      _out << "property uchar blue" << '\n';
+
+      if ( _opt.color_has_alpha() )
+        _out << "property uchar alpha" << '\n';
+    }
+  }
+
+  if (!_opt.is_binary()) // binary not supported yet
+    _ovProps = writeCustomTypeHeader(_out, _be.kernel()->vprops_begin(), _be.kernel()->vprops_end());
+
+  _out << "element face " << _be.n_faces() << '\n';
+  _out << "property list uchar int vertex_indices" << '\n';
+
+  if (!_opt.is_binary()) // binary not supported yet
+    _ofProps = writeCustomTypeHeader(_out, _be.kernel()->fprops_begin(), _be.kernel()->fprops_end());
+
+  _out << "end_header" << '\n';
 }
 
 
@@ -167,52 +365,27 @@ bool
 _PLYWriter_::
 write_ascii(std::ostream& _out, BaseExporter& _be, Options _opt) const
 {
-  omlog() << "[PLYWriter] : write ascii file\n";
-
-
-  unsigned int i, j, nV, nF;
+  
+  unsigned int i, nV, nF;
   Vec3f v, n;
-  OpenMesh::Vec3uc c;
-  OpenMesh::Vec4uc cA;
+  OpenMesh::Vec3ui c;
+  OpenMesh::Vec4ui cA;
+  OpenMesh::Vec3f cf;
+  OpenMesh::Vec4f cAf;
   OpenMesh::Vec2f t;
   VertexHandle vh;
   std::vector<VertexHandle> vhandles;
 
-  //writing header
-  _out << "ply" << std::endl;
-  _out << "format ascii 1.0" << std::endl;
-  _out << "element vertex " << _be.n_vertices() << std::endl;
+  std::vector<CustomProperty> vProps;
+  std::vector<CustomProperty> fProps;
 
-  _out << "property float32 x" << std::endl;
-  _out << "property float32 y" << std::endl;
-  _out << "property float32 z" << std::endl;
+  write_header(_out, _be, _opt, vProps, fProps);
 
-  if ( _opt.vertex_has_normal() ){
-    _out << "property float32 nx" << std::endl;
-    _out << "property float32 ny" << std::endl;
-    _out << "property float32 nz" << std::endl;
-  }
-
-  if ( _opt.vertex_has_texcoord() ){
-    _out << "property float32 u" << std::endl;
-    _out << "property float32 v" << std::endl;
-  }
-
-  if ( _opt.vertex_has_color() ){
-    _out << "property uint8 red" << std::endl;
-    _out << "property uint8 green" << std::endl;
-    _out << "property uint8 blue" << std::endl;
-
-    if ( _opt.color_has_alpha() )
-      _out << "property uint8 alpha" << std::endl;
-  }
-
-  _out << "element face " << _be.n_faces() << std::endl;
-  _out << "property list uint8 int32 vertex_indices" << std::endl;
-  _out << "end_header" << std::endl;
+  if (_opt.color_is_float())
+    _out << std::fixed;
 
   // vertex data (point, normals, colors, texcoords)
-  for (i=0, nV=_be.n_vertices(); i<nV; ++i)
+  for (i=0, nV=int(_be.n_vertices()); i<nV; ++i)
   {
     vh = VertexHandle(i);
     v  = _be.point(vh);
@@ -236,68 +409,46 @@ write_ascii(std::ostream& _out, BaseExporter& _be, Options _opt) const
     if ( _opt.vertex_has_color() ) {
       //with alpha
       if ( _opt.color_has_alpha() ){
-        cA  = _be.colorA(vh);
-        _out << " " << cA[0] << " " << cA[1] << " " << cA[2] << " " << cA[3];
+        if (_opt.color_is_float()) {
+          cAf = _be.colorAf(vh);
+          _out << " " << cAf;
+        } else {
+          cA  = _be.colorAi(vh);
+          _out << " " << cA;
+        }
       }else{
         //without alpha
-        c  = _be.color(vh);
-        _out << " " << c[0] << " " << c[1] << " " << c[2];
+        if (_opt.color_is_float()) {
+          cf = _be.colorf(vh);
+          _out << " " << cf;
+        } else {
+          c  = _be.colori(vh);
+          _out << " " << c;
+        }
       }
     }
+
+
+    // write custom properties for vertices
+    for (std::vector<CustomProperty>::iterator iter = vProps.begin(); iter < vProps.end(); ++iter)
+      write_customProp_ascii(_out,*iter,i);
 
     _out << "\n";
   }
 
   // faces (indices starting at 0)
-  if (_be.is_triangle_mesh())
+  for (i=0, nF=int(_be.n_faces()); i<nF; ++i)
   {
-    for (i=0, nF=_be.n_faces(); i<nF; ++i)
-    {
-      _be.get_vhandles(FaceHandle(i), vhandles);
-      _out << 3 << " ";
-      _out << vhandles[0].idx()  << " ";
-      _out << vhandles[1].idx()  << " ";
-      _out << vhandles[2].idx();
+    // write vertex indices per face
+    nV = _be.get_vhandles(FaceHandle(i), vhandles);
+    _out << nV;
+    for (size_t j=0; j<vhandles.size(); ++j)
+      _out << " " << vhandles[j].idx();
 
-//       //face color
-//       if ( _opt.face_has_color() ){
-//         //with alpha
-//         if ( _opt.color_has_alpha() ){
-//           cA  = _be.colorA( FaceHandle(i) );
-//           _out << " " << cA[0] << " " << cA[1] << " " << cA[2] << " " << cA[3];
-//         }else{
-//           //without alpha
-//           c  = _be.color( FaceHandle(i) );
-//           _out << " " << c[0] << " " << c[1] << " " << c[2];
-//         }
-//       }
-      _out << "\n";
-    }
-  }
-  else
-  {
-    for (i=0, nF=_be.n_faces(); i<nF; ++i)
-    {
-      nV = _be.get_vhandles(FaceHandle(i), vhandles);
-      _out << nV << " ";
-      for (j=0; j<vhandles.size(); ++j)
-         _out << vhandles[j].idx() << " ";
-
-//       //face color
-//       if ( _opt.face_has_color() ){
-//         //with alpha
-//         if ( _opt.color_has_alpha() ){
-//           cA  = _be.colorA( FaceHandle(i) );
-//           _out << cA[0] << " " << cA[1] << " " << cA[2] << " " << cA[3];
-//         }else{
-//           //without alpha
-//           c  = _be.color( FaceHandle(i) );
-//           _out << c[0] << " " << c[1] << " " << c[2];
-//         }
-//       }
-
-      _out << "\n";
-    }
+    // write custom props
+    for (std::vector<CustomProperty>::iterator iter = fProps.begin(); iter < fProps.end(); ++iter)
+      write_customProp_ascii(_out,*iter,i);
+    _out << "\n";
   }
 
 
@@ -371,58 +522,23 @@ bool
 _PLYWriter_::
 write_binary(std::ostream& _out, BaseExporter& _be, Options _opt) const
 {
-  omlog() << "[PLYWriter] : write binary file\n";
-
-  unsigned int i, j, nV, nF;
+  
+  unsigned int i, nV, nF;
   Vec3f v, n;
   Vec2f t;
-  OpenMesh::Vec4f c;
+  OpenMesh::Vec4uc c;
+  OpenMesh::Vec4f cf;
   VertexHandle vh;
   std::vector<VertexHandle> vhandles;
 
-  //writing header
-  _out << "ply" << std::endl;
-  _out << "format ";
+  // vProps and fProps will be empty, until custom properties are supported by the binary writer
+  std::vector<CustomProperty> vProps;
+  std::vector<CustomProperty> fProps;
 
-  if ( options_.check(Options::MSB) )
-    _out << "binary_big_endian ";
-  else
-    _out << "binary_little_endian ";
-
-  _out << "1.0" << std::endl;
-
-  _out << "element vertex " << _be.n_vertices() << std::endl;
-
-  _out << "property float32 x" << std::endl;
-  _out << "property float32 y" << std::endl;
-  _out << "property float32 z" << std::endl;
-  
-  if ( _opt.vertex_has_normal() ){
-    _out << "property float32 nx" << std::endl;
-    _out << "property float32 ny" << std::endl;
-    _out << "property float32 nz" << std::endl;
-  }
-
-  if ( _opt.vertex_has_texcoord() ){
-    _out << "property float32 u" << std::endl;
-    _out << "property float32 v" << std::endl;
-  }
-
-  if ( _opt.vertex_has_color() ){
-    _out << "property int32 red" << std::endl;
-    _out << "property int32 green" << std::endl;
-    _out << "property int32 blue" << std::endl;
-
-    if ( _opt.color_has_alpha() )
-      _out << "property int32 alpha" << std::endl;
-  }
-
-  _out << "element face " << _be.n_faces() << std::endl;
-  _out << "property list uchar int32 vertex_indices" << std::endl;
-  _out << "end_header" << std::endl;
+  write_header(_out, _be, _opt, vProps, fProps);
 
   // vertex data (point, normals, texcoords)
-  for (i=0, nV=_be.n_vertices(); i<nV; ++i)
+  for (i=0, nV=int(_be.n_vertices()); i<nV; ++i)
   {
     vh = VertexHandle(i);
     v  = _be.point(vh);
@@ -449,20 +565,30 @@ write_binary(std::ostream& _out, BaseExporter& _be, Options _opt) const
 
     // vertex color
     if ( _opt.vertex_has_color() ) {
-        c  = _be.colorA(vh);
-        writeValue(ValueTypeINT32, _out, (int)c[0]);
-        writeValue(ValueTypeINT32, _out, (int)c[1]);
-        writeValue(ValueTypeINT32, _out, (int)c[2]);
+        if ( _opt.color_is_float() ) {
+          cf  = _be.colorAf(vh);
+          writeValue(ValueTypeFLOAT, _out, cf[0]);
+          writeValue(ValueTypeFLOAT, _out, cf[1]);
+          writeValue(ValueTypeFLOAT, _out, cf[2]);
 
-        if ( _opt.color_has_alpha() )
-          writeValue(ValueTypeINT32, _out, (int)c[3]);
+          if ( _opt.color_has_alpha() )
+            writeValue(ValueTypeFLOAT, _out, cf[3]);
+        } else {
+          c  = _be.colorA(vh);
+          writeValue(ValueTypeUCHAR, _out, (int)c[0]);
+          writeValue(ValueTypeUCHAR, _out, (int)c[1]);
+          writeValue(ValueTypeUCHAR, _out, (int)c[2]);
+
+          if ( _opt.color_has_alpha() )
+            writeValue(ValueTypeUCHAR, _out, (int)c[3]);
+        }
     }
   }
 
   // faces (indices starting at 0)
   if (_be.is_triangle_mesh())
   {
-    for (i=0, nF=_be.n_faces(); i<nF; ++i)
+    for (i=0, nF=int(_be.n_faces()); i<nF; ++i)
     {
       //face
       _be.get_vhandles(FaceHandle(i), vhandles);
@@ -485,12 +611,12 @@ write_binary(std::ostream& _out, BaseExporter& _be, Options _opt) const
   }
   else
   {
-    for (i=0, nF=_be.n_faces(); i<nF; ++i)
+    for (i=0, nF=int(_be.n_faces()); i<nF; ++i)
     {
       //face
       nV = _be.get_vhandles(FaceHandle(i), vhandles);
       writeValue(ValueTypeUINT8, _out, nV);
-      for (j=0; j<vhandles.size(); ++j)
+      for (size_t j=0; j<vhandles.size(); ++j)
         writeValue(ValueTypeINT32, _out, vhandles[j].idx() );
 
 //       //face color
@@ -518,7 +644,6 @@ binary_size(BaseExporter& _be, Options _opt) const
 {
   size_t header(0);
   size_t data(0);
-  size_t _3longs(3*sizeof(long));
   size_t _3floats(3*sizeof(float));
   size_t _3ui(3*sizeof(unsigned int));
   size_t _4ui(4*sizeof(unsigned int));
@@ -527,6 +652,9 @@ binary_size(BaseExporter& _be, Options _opt) const
     return 0;
   else
   {
+
+    size_t _3longs(3*sizeof(long));
+
     header += 11;                             // 'OFF BINARY\n'
     header += _3longs;                        // #V #F #E
     data   += _be.n_vertices() * _3floats;    // vertex data
@@ -558,13 +686,12 @@ binary_size(BaseExporter& _be, Options _opt) const
   }
   else
   {
-    unsigned int i, nV, nF;
+    unsigned int i, nF;
     std::vector<VertexHandle> vhandles;
 
-    for (i=0, nF=_be.n_faces(); i<nF; ++i)
+    for (i=0, nF=int(_be.n_faces()); i<nF; ++i)
     {
-      nV = _be.get_vhandles(FaceHandle(i), vhandles);
-      data += nV * sizeof(unsigned int);
+      data += _be.get_vhandles(FaceHandle(i), vhandles) * sizeof(unsigned int);
 
     }
   }

@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -121,6 +128,94 @@ struct FinalMeshItemsT
   typedef typename Traits::template HalfedgeT<ITraits, Refs>    HalfedgeData;
   typedef typename Traits::template EdgeT<ITraits, Refs>        EdgeData;
   typedef typename Traits::template FaceT<ITraits, Refs>        FaceData;
+};
+
+
+#ifndef DOXY_IGNORE_THIS
+namespace {
+namespace TM {
+template<typename Lhs, typename Rhs> struct TypeEquality;
+template<typename Lhs> struct TypeEquality<Lhs, Lhs> {};
+
+template<typename LhsTraits, typename RhsTraits> struct ItemsEquality {
+    TypeEquality<typename LhsTraits::Point, typename RhsTraits::Point> te1;
+    TypeEquality<typename LhsTraits::Scalar, typename RhsTraits::Scalar> te2;
+    TypeEquality<typename LhsTraits::Normal, typename RhsTraits::Normal> te3;
+    TypeEquality<typename LhsTraits::Color, typename RhsTraits::Color> te4;
+    TypeEquality<typename LhsTraits::TexCoord1D, typename RhsTraits::TexCoord1D> te5;
+    TypeEquality<typename LhsTraits::TexCoord2D, typename RhsTraits::TexCoord2D> te6;
+    TypeEquality<typename LhsTraits::TexCoord3D, typename RhsTraits::TexCoord3D> te7;
+    TypeEquality<typename LhsTraits::TextureIndex, typename RhsTraits::TextureIndex> te8;
+};
+
+} /* namespace TM */
+} /* anonymous namespace */
+#endif
+
+/**
+ * @brief Cast a mesh with different but identical traits into each other.
+ *
+ * Note that there exists a syntactically more convenient global method
+ * mesh_cast().
+ *
+ * Example:
+ * @code{.cpp}
+ * struct TriTraits1 : public OpenMesh::DefaultTraits {
+ *   typedef Vec3d Point;
+ * };
+ * struct TriTraits2 : public OpenMesh::DefaultTraits {
+ *   typedef Vec3d Point;
+ * };
+ * struct TriTraits3 : public OpenMesh::DefaultTraits {
+ *   typedef Vec3f Point;
+ * };
+ *
+ * TriMesh_ArrayKernelT<TriTraits1> a;
+ * TriMesh_ArrayKernelT<TriTraits2> &b = MeshCast<TriMesh_ArrayKernelT<TriTraits2>&, TriMesh_ArrayKernelT<TriTraits1>&>::cast(a); // OK
+ * TriMesh_ArrayKernelT<TriTraits3> &c = MeshCast<TriMesh_ArrayKernelT<TriTraits3>&, TriMesh_ArrayKernelT<TriTraits1>&>::cast(a); // ERROR
+ * @endcode
+ *
+ * @see mesh_cast()
+ *
+ * @param rhs
+ * @return
+ */
+template<typename LhsMeshT, typename RhsMeshT> struct MeshCast;
+
+template<typename LhsMeshT, typename RhsMeshT>
+struct MeshCast<LhsMeshT&, RhsMeshT&> {
+    static LhsMeshT &cast(RhsMeshT &rhs) {
+        (void)sizeof(TM::ItemsEquality<typename LhsMeshT::MeshItemsT, typename RhsMeshT::MeshItemsT>);
+        (void)sizeof(TM::TypeEquality<typename LhsMeshT::ConnectivityT, typename RhsMeshT::ConnectivityT>);
+        return reinterpret_cast<LhsMeshT&>(rhs);
+    }
+};
+
+template<typename LhsMeshT, typename RhsMeshT>
+struct MeshCast<const LhsMeshT&, const RhsMeshT&> {
+    static const LhsMeshT &cast(const RhsMeshT &rhs) {
+        (void)sizeof(TM::ItemsEquality<typename LhsMeshT::MeshItemsT, typename RhsMeshT::MeshItemsT>);
+        (void)sizeof(TM::TypeEquality<typename LhsMeshT::ConnectivityT, typename RhsMeshT::ConnectivityT>);
+        return reinterpret_cast<const LhsMeshT&>(rhs);
+    }
+};
+
+template<typename LhsMeshT, typename RhsMeshT>
+struct MeshCast<LhsMeshT*, RhsMeshT*> {
+    static LhsMeshT *cast(RhsMeshT *rhs) {
+        (void)sizeof(TM::ItemsEquality<typename LhsMeshT::MeshItemsT, typename RhsMeshT::MeshItemsT>);
+        (void)sizeof(TM::TypeEquality<typename LhsMeshT::ConnectivityT, typename RhsMeshT::ConnectivityT>);
+        return reinterpret_cast<LhsMeshT*>(rhs);
+    }
+};
+
+template<typename LhsMeshT, typename RhsMeshT>
+struct MeshCast<const LhsMeshT*, const RhsMeshT*> {
+    static const LhsMeshT *cast(const RhsMeshT *rhs) {
+        (void)sizeof(TM::ItemsEquality<typename LhsMeshT::MeshItemsT, typename RhsMeshT::MeshItemsT>);
+        (void)sizeof(TM::TypeEquality<typename LhsMeshT::ConnectivityT, typename RhsMeshT::ConnectivityT>);
+        return reinterpret_cast<const LhsMeshT*>(rhs);
+    }
 };
 
 

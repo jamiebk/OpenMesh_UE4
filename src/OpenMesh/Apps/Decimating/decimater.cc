@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -255,7 +262,7 @@ decimate(const std::string &_ifname,
 
 
 
-     typename OpenMesh::Decimater::ModAspectRatioT<DecimaterType>::Handle modAR;
+     typename OpenMesh::Decimater::ModAspectRatioT<Mesh>::Handle modAR;
 
      if (_opt.AR.is_enabled())
      {
@@ -264,16 +271,17 @@ decimate(const std::string &_ifname,
          decimater.module( modAR ).set_aspect_ratio( _opt.AR ) ;
      }
 
-     typename OpenMesh::Decimater::ModEdgeLengthT<DecimaterType>::Handle modEL;
+     typename OpenMesh::Decimater::ModEdgeLengthT<Mesh>::Handle modEL;
 
      if (_opt.EL.is_enabled())
      {
        decimater.add(modEL);
        if (_opt.EL.has_value())
          decimater.module( modEL ).set_edge_length( _opt.EL ) ;
+       decimater.module(modEL).set_binary(false);
      }
 
-     typename OpenMesh::Decimater::ModHausdorffT <DecimaterType>::Handle modHD;
+     typename OpenMesh::Decimater::ModHausdorffT <Mesh>::Handle modHD;
 
      if (_opt.HD.is_enabled())
      {
@@ -283,21 +291,22 @@ decimate(const std::string &_ifname,
 
      }
 
-     typename OpenMesh::Decimater::ModIndependentSetsT<DecimaterType>::Handle modIS;
+     typename OpenMesh::Decimater::ModIndependentSetsT<Mesh>::Handle modIS;
 
      if ( _opt.IS.is_enabled() )
        decimater.add(modIS);
 
-     typename OpenMesh::Decimater::ModNormalDeviationT<DecimaterType>::Handle modND;
+     typename OpenMesh::Decimater::ModNormalDeviationT<Mesh>::Handle modND;
 
      if (_opt.ND.is_enabled())
      {
        decimater.add(modND);
        if (_opt.ND.has_value())
          decimater.module( modND ).set_normal_deviation( _opt.ND );
+       decimater.module( modND ).set_binary(false);
      }
 
-     typename OpenMesh::Decimater::ModNormalFlippingT<DecimaterType>::Handle modNF;
+     typename OpenMesh::Decimater::ModNormalFlippingT<Mesh>::Handle modNF;
 
      if (_opt.NF.is_enabled())
      {
@@ -307,21 +316,22 @@ decimate(const std::string &_ifname,
      }
 
 
-     typename OpenMesh::Decimater::ModProgMeshT<DecimaterType>::Handle       modPM;
+     typename OpenMesh::Decimater::ModProgMeshT<Mesh>::Handle       modPM;
 
      if ( _opt.PM.is_enabled() )
        decimater.add(modPM);
 
-     typename OpenMesh::Decimater::ModQuadricT<DecimaterType>::Handle        modQ;
+     typename OpenMesh::Decimater::ModQuadricT<Mesh>::Handle        modQ;
 
      if (_opt.Q.is_enabled())
      {
        decimater.add(modQ);
        if (_opt.Q.has_value())
          decimater.module( modQ ).set_max_err( _opt.Q );
+       decimater.module(modQ).set_binary(false);
      }
 
-     typename OpenMesh::Decimater::ModRoundnessT<DecimaterType>::Handle      modR;
+     typename OpenMesh::Decimater::ModRoundnessT<Mesh>::Handle      modR;
 
      if ( _opt.R.is_enabled() )
      {
@@ -345,6 +355,7 @@ decimate(const std::string &_ifname,
        if (!rc)
        {
          std::cerr << "  initializing failed!" << std::endl;
+         std::cerr << "  maybe no priority module or more than one were defined!" << std::endl;
          return false;
        }
      }
@@ -365,7 +376,7 @@ decimate(const std::string &_ifname,
      float nv_before = float(mesh.n_vertices());
 
      timer.start();
-     int rc = 0;
+     size_t rc = 0;
      if (_opt.n_collapses < 0.0)
        rc = decimater.decimate_to( size_t(-_opt.n_collapses) );
      else if (_opt.n_collapses >= 1.0 || _opt.n_collapses == 0.0)
@@ -530,7 +541,12 @@ void usage_and_exit(int xcode)
             << "  Decimating a mesh using quadrics and normal flipping.\n" << std::endl;
   std::cerr << "Options\n"  << std::endl;
   std::cerr << " -M \"{Module-Name}[:Value]}\"\n"
-            << "    Use named module with eventually given parameterization\n" << std::endl;
+            << "    Use named module with eventually given parameterization\n"
+            << "    Several modules can also be used in order to introduce further constraints\n"
+            << "    Note that -M has to be given before each new module \n"
+            << "    An example with ModQuadric as a priority module\n"
+            << "    and ModRoundness as a binary module could look like this:\n"
+            << "    commandlineDecimater -M Q -M R:40.0 -n 0.1 -i inputfile.obj -o outputfile.obj\n" << std::endl;
   std::cerr << " -n <N>\n"
             << "    N >= 1: do N halfedge collapses.\n"
             << "    N <=-1: decimate down to |N| vertices.\n"
@@ -538,15 +554,16 @@ void usage_and_exit(int xcode)
   std::cerr << std::endl;
   std::cerr << "Modules:\n\n";
   std::cerr << "  AR[:ratio]      - ModAspectRatio\n";
-  std::cerr << "  EL[:legth]      - ModEdgeLength\n";
+  std::cerr << "  EL[:legth]      - ModEdgeLength*\n";
   std::cerr << "  HD[:distance]   - ModHausdorff\n";
   std::cerr << "  IS              - ModIndependentSets\n";
-  std::cerr << "  ND[:angle]      - ModNormalDeviation\n";
+  std::cerr << "  ND[:angle]      - ModNormalDeviation*\n";
   std::cerr << "  NF[:angle]      - ModNormalFlipping\n";
   std::cerr << "  PM[:file name]  - ModProgMesh\n";
-  std::cerr << "  Q[:error]       - ModQuadric\n";
+  std::cerr << "  Q[:error]       - ModQuadric*\n";
   std::cerr << "  R[:angle]       - ModRoundness\n";
   std::cerr << "    0 < angle < 60\n";
+  std::cerr << "  *: priority module. Decimater needs one of them (not more).\n";
 
   exit( xcode );
 }

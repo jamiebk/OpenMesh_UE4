@@ -1,36 +1,43 @@
-/*===========================================================================*\
-*                                                                           *
-*                               OpenMesh                                    *
-*      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
-*                           www.openmesh.org                                *
-*                                                                           *
-*---------------------------------------------------------------------------* 
-*  This file is part of OpenMesh.                                           *
-*                                                                           *
-*  OpenMesh is free software: you can redistribute it and/or modify         * 
-*  it under the terms of the GNU Lesser General Public License as           *
-*  published by the Free Software Foundation, either version 3 of           *
-*  the License, or (at your option) any later version with the              *
-*  following exceptions:                                                    *
-*                                                                           *
-*  If other files instantiate templates or use macros                       *
-*  or inline functions from this file, or you compile this file and         *
-*  link it with other files to produce an executable, this file does        *
-*  not by itself cause the resulting executable to be covered by the        *
-*  GNU Lesser General Public License. This exception does not however       *
-*  invalidate any other reasons why the executable file might be            *
-*  covered by the GNU Lesser General Public License.                        *
-*                                                                           *
-*  OpenMesh is distributed in the hope that it will be useful,              *
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
-*  GNU Lesser General Public License for more details.                      *
-*                                                                           *
-*  You should have received a copy of the GNU LesserGeneral Public          *
-*  License along with OpenMesh.  If not,                                    *
-*  see <http://www.gnu.org/licenses/>.                                      *
-*                                                                           *
-\*==========================================================================*/ 
+/* ========================================================================= *
+ *                                                                           *
+ *                               OpenMesh                                    *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
+ *                                                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
+ *                                                                           *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
+ *                                                                           *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
+ *                                                                           *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
+ *                                                                           *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
+ *                                                                           *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*==========================================================================*\
 *                                                                           *             
@@ -136,22 +143,22 @@ public:
     weights_.resize(_max_valence);
 
     weights_[3].resize(4);
-    weights_[3][0] = +4.0/27;
-    weights_[3][1] = -5.0/27;
-    weights_[3][2] = +4.0/27;
-    weights_[3][3] = +8.0/9;
+    weights_[3][0] = real_t(+4.0/27);
+    weights_[3][1] = real_t(-5.0/27);
+    weights_[3][2] = real_t(+4.0/27);
+    weights_[3][3] = real_t(+8.0/9);
 
     weights_[4].resize(5);
-    weights_[4][0] = +2.0/9;
-    weights_[4][1] = -1.0/9;
-    weights_[4][2] = -1.0/9;
-    weights_[4][3] = +2.0/9;
-    weights_[4][4] = +7.0/9 ;
+    weights_[4][0] = real_t(+2.0/9);
+    weights_[4][1] = real_t(-1.0/9);
+    weights_[4][2] = real_t(-1.0/9);
+    weights_[4][3] = real_t(+2.0/9);
+    weights_[4][4] = real_t(+7.0/9);
 
     for(unsigned int K=5; K<_max_valence; ++K)
     {
         weights_[K].resize(K+1);
-        double aH = 2.0*cos(M_PI/K)/3.0;
+        real_t aH = 2.0*cos(M_PI/K)/3.0;
         weights_[K][K] = 1.0 - aH*aH;
         for(unsigned int i=0; i<K; ++i)
         {
@@ -212,23 +219,23 @@ protected:
       // tag existing edges
       for (eit=_m.edges_begin(); eit != _m.edges_end();++eit)
       {
-        _m.status( eit ).set_tagged( true );
-        if ( (gen%2) && _m.is_boundary(eit) )
-          compute_new_boundary_points( _m, eit ); // *) creates new vertices
+        _m.status( *eit ).set_tagged( true );
+        if ( (gen%2) && _m.is_boundary(*eit) )
+          compute_new_boundary_points( _m, *eit ); // *) creates new vertices
       }
 
       // insert new vertices, and store pos in vp_pos_
       typename MeshType::FaceIter fend = _m.faces_end();
       for (fit = _m.faces_begin();fit != fend; ++fit)
       {
-        if (_m.is_boundary(fit))
+        if (_m.is_boundary(*fit))
         {
             if(gen%2)
-                _m.property(fp_pos_, fit.handle()).invalidate();
+                _m.property(fp_pos_, *fit).invalidate();
             else
             {
                 //find the interior boundary halfedge
-                for( heh = _m.halfedge_handle(fit.handle()); !_m.is_boundary( _m.opposite_halfedge_handle(heh) ); heh = _m.next_halfedge_handle(heh) )
+                for( heh = _m.halfedge_handle(*fit); !_m.is_boundary( _m.opposite_halfedge_handle(heh) ); heh = _m.next_halfedge_handle(heh) )
                   ;
                 assert(_m.is_boundary( _m.opposite_halfedge_handle(heh) ));
                 pos = zero;
@@ -303,7 +310,7 @@ protected:
                     }
                 }
                 vh   = _m.add_vertex( pos );
-                _m.property(fp_pos_, fit.handle()) = vh;
+                _m.property(fp_pos_, *fit) = vh;
             }
         }
         else
@@ -312,16 +319,16 @@ protected:
             int nOrdinary = 0;
             
             //check number of extraordinary vertices
-            for(fvit = _m.fv_iter( fit ); fvit; ++fvit)
-                if( (_m.valence(fvit.handle())) == 6 || _m.is_boundary(fvit.handle()) )
+            for(fvit = _m.fv_iter( *fit ); fvit.is_valid(); ++fvit)
+                if( (_m.valence(*fvit)) == 6 || _m.is_boundary(*fvit) )
                     ++nOrdinary;
 
             if(nOrdinary==3)
             {
-                for(fheit = _m.fh_iter( fit ); fheit; ++fheit)
+                for(fheit = _m.fh_iter( *fit ); fheit.is_valid(); ++fheit)
                 {
                     //one ring vertex has weight 32/81
-                    heh = fheit.handle();
+                    heh = *fheit;
                     assert(_m.to_vertex_handle(heh).is_valid());
                     pos += real_t(32.0/81) * _m.point(_m.to_vertex_handle(heh));
                     //tip vertex has weight -1/81
@@ -346,14 +353,14 @@ protected:
             else
             {
                 //only use irregular vertices:
-                for(fheit = _m.fh_iter( fit ); fheit; ++fheit)
+                for(fheit = _m.fh_iter( *fit ); fheit.is_valid(); ++fheit)
                 {
-                    vh = _m.to_vertex_handle(fheit);
+                    vh = _m.to_vertex_handle(*fheit);
                     if( (_m.valence(vh) != 6) && (!_m.is_boundary(vh)) )
                     {
                         unsigned int K = _m.valence(vh);
                         pos += weights_[K][K]*_m.point(vh);
-                        heh = _m.opposite_halfedge_handle( fheit.handle() );
+                        heh = _m.opposite_halfedge_handle( *fheit );
                         for(unsigned int i = 0; i<K; ++i, heh = _m.opposite_halfedge_handle(_m.prev_halfedge_handle(heh)) )
                         {
                             pos += weights_[K][i]*_m.point(_m.to_vertex_handle(heh));
@@ -364,28 +371,28 @@ protected:
             }
 
             vh   = _m.add_vertex( pos );
-            _m.property(fp_pos_, fit.handle()) = vh;
+            _m.property(fp_pos_, *fit) = vh;
         }
       }
 
       //split faces
       for (fit = _m.faces_begin();fit != fend; ++fit)
       {
-        if ( _m.is_boundary(fit) && (gen%2))
+        if ( _m.is_boundary(*fit) && (gen%2))
         {
-                boundary_split( _m, fit );
+                boundary_split( _m, *fit );
         }
         else
         {
-            assert(_m.property(fp_pos_, fit.handle()).is_valid());
-            _m.split( fit, _m.property(fp_pos_, fit.handle()) );
+            assert(_m.property(fp_pos_, *fit).is_valid());
+            _m.split( *fit, _m.property(fp_pos_, *fit) );
         }
       }
 
       // flip old edges
       for (eit=_m.edges_begin(); eit != _m.edges_end(); ++eit)
-        if ( _m.status( eit ).tagged() && !_m.is_boundary( eit ) )
-          _m.flip(eit);
+        if ( _m.status( *eit ).tagged() && !_m.is_boundary( *eit ) )
+          _m.flip(*eit);
 
       // Now we have an consistent mesh!
       ASSERT_CONSISTENCY( MeshType, _m );
@@ -455,11 +462,11 @@ private:
     typename MeshType::HalfedgeHandle   heh;
 
     // find boundary edge
-    for( fe_it=_m.fe_iter( _fh ); fe_it && !_m.is_boundary( fe_it ); ++fe_it ) {};
+    for( fe_it=_m.fe_iter( _fh ); fe_it.is_valid() && !_m.is_boundary( *fe_it ); ++fe_it ) {};
 
     // use precomputed, already inserted but not linked vertices
-    vhl = _m.property(ep_nv_, fe_it).first;
-    vhr = _m.property(ep_nv_, fe_it).second;
+    vhl = _m.property(ep_nv_, *fe_it).first;
+    vhr = _m.property(ep_nv_, *fe_it).second;
 
     /*
     //       *---------*---------*
@@ -474,8 +481,7 @@ private:
     */
     // get halfedge pointing from P2 to P3 (inner boundary halfedge)
 
-    heh = _m.halfedge_handle(fe_it, 
-                             _m.is_boundary(_m.halfedge_handle(fe_it,0)));
+    heh = _m.halfedge_handle(*fe_it, _m.is_boundary(_m.halfedge_handle(*fe_it,0)));
 
     typename MeshType::HalfedgeHandle pl_P3;
 

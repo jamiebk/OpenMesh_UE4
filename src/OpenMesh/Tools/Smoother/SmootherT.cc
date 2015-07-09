@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -135,8 +142,8 @@ initialize(Component _comp, Continuity _cont)
   // store original points & normals
   for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
   {
-    mesh_.property(original_positions_, v_it) = mesh_.point(v_it);
-    mesh_.property(original_normals_,   v_it) = mesh_.normal(v_it);
+    mesh_.property(original_positions_, *v_it) = mesh_.point(*v_it);
+    mesh_.property(original_normals_,   *v_it) = mesh_.normal(*v_it);
   }
 }
 
@@ -155,31 +162,30 @@ set_active_vertices()
   // is something selected?
   bool nothing_selected(true);
   for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
-    if (mesh_.status(v_it).selected())
+    if (mesh_.status(*v_it).selected())
     { nothing_selected = false; break; }
 
 
   // tagg all active vertices
-  bool active;
   for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
   {
-    active = ((nothing_selected || mesh_.status(v_it).selected())
-	          && !mesh_.is_boundary(v_it)
-	          && !mesh_.status(v_it).locked());
+    bool active = ((nothing_selected || mesh_.status(*v_it).selected())
+	                 && !mesh_.is_boundary(*v_it)
+	                 && !mesh_.status(*v_it).locked());
 
     if ( skip_features_ ) {
 
-      active = active && !mesh_.status(v_it).feature();
+      active = active && !mesh_.status(*v_it).feature();
 
-      typename Mesh::VertexOHalfedgeIter  voh_it(mesh_,v_it);
-      for ( ; voh_it ; ++voh_it ) {
+      typename Mesh::VertexOHalfedgeIter  voh_it(mesh_,*v_it);
+      for ( ; voh_it.is_valid() ; ++voh_it ) {
 
         // If the edge is a feature edge, skip the current vertex while smoothing
-        if ( mesh_.status(mesh_.edge_handle(voh_it.handle())).feature() )
+        if ( mesh_.status(mesh_.edge_handle(*voh_it)).feature() )
           active = false;
 
-        typename Mesh::FaceHandle fh1 = mesh_.face_handle(voh_it.handle() );
-        typename Mesh::FaceHandle fh2 = mesh_.face_handle(mesh_.opposite_halfedge_handle(voh_it.handle() ) );
+        typename Mesh::FaceHandle fh1 = mesh_.face_handle(*voh_it );
+        typename Mesh::FaceHandle fh2 = mesh_.face_handle(mesh_.opposite_halfedge_handle(*voh_it ) );
 
         // If one of the faces is a feature, lock current vertex
         if ( fh1.is_valid() && mesh_.status( fh1 ).feature() )
@@ -190,7 +196,7 @@ set_active_vertices()
       }
     }
 
-    mesh_.property(is_active_, v_it) = active;
+    mesh_.property(is_active_, *v_it) = active;
   }
 
 
@@ -200,9 +206,9 @@ set_active_vertices()
     typename Mesh::VVIter     vv_it;
 
     for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
-      if (mesh_.is_boundary(v_it))
-	for (vv_it=mesh_.vv_iter(v_it); vv_it; ++vv_it)
-	  mesh_.property(is_active_, vv_it) = false;
+      if (mesh_.is_boundary(*v_it))
+        for (vv_it=mesh_.vv_iter(*v_it); vv_it.is_valid(); ++vv_it)
+          mesh_.property(is_active_, *vv_it) = false;
   }
 
 
@@ -213,26 +219,26 @@ set_active_vertices()
 
     for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
     {
-      mesh_.status(v_it).set_tagged(false);
-      mesh_.status(v_it).set_tagged2(false);
+      mesh_.status(*v_it).set_tagged(false);
+      mesh_.status(*v_it).set_tagged2(false);
     }
 
     for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
-      if (mesh_.is_boundary(v_it))
-	for (vv_it=mesh_.vv_iter(v_it); vv_it; ++vv_it)
-	  mesh_.status(v_it).set_tagged(true);
+      if (mesh_.is_boundary(*v_it))
+        for (vv_it=mesh_.vv_iter(*v_it); vv_it.is_valid(); ++vv_it)
+          mesh_.status(*v_it).set_tagged(true);
 
     for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
-      if (mesh_.status(v_it).tagged())
-	for (vv_it=mesh_.vv_iter(v_it); vv_it; ++vv_it)
-	  mesh_.status(v_it).set_tagged2(true);
+      if (mesh_.status(*v_it).tagged())
+        for (vv_it=mesh_.vv_iter(*v_it); vv_it.is_valid(); ++vv_it)
+          mesh_.status(*v_it).set_tagged2(true);
 
     for (v_it=mesh_.vertices_begin(); v_it!=v_end; ++v_it)
     {
-      if (mesh_.status(v_it).tagged2())
-	mesh_.property(is_active_, vv_it) = false;
-      mesh_.status(v_it).set_tagged(false);
-      mesh_.status(v_it).set_tagged2(false);
+      if (mesh_.status(*v_it).tagged2())
+        mesh_.property(is_active_, *vv_it) = false;
+      mesh_.status(*v_it).set_tagged(false);
+      mesh_.status(*v_it).set_tagged2(false);
     }
   }
 }
@@ -254,16 +260,16 @@ set_relative_local_error(Scalar _err)
 
     // compute bounding box
     Point  bb_min, bb_max;
-    bb_min = bb_max = mesh_.point(v_it);
+    bb_min = bb_max = mesh_.point(*v_it);
     for (++v_it; v_it!=v_end; ++v_it)
     {
-      bb_min.minimize(mesh_.point(v_it));
-      bb_max.minimize(mesh_.point(v_it));
+      bb_min.minimize(mesh_.point(*v_it));
+      bb_max.maximize(mesh_.point(*v_it));
     }
 
 
     // abs. error = rel. error * bounding-diagonal
-    set_absolute_error(_err * (bb_max-bb_min).norm());
+    set_absolute_local_error(_err * (bb_max-bb_min).norm());
   }
 }
 
@@ -360,14 +366,14 @@ project_to_tangent_plane()
 
   for (; v_it != v_end; ++v_it)
   {
-    if (is_active(v_it))
+    if (is_active(*v_it))
     {
-      translation  = new_position(v_it)-orig_position(v_it);
-      normal       = orig_normal(v_it);
+      translation  = new_position(*v_it)-orig_position(*v_it);
+      normal       = orig_normal(*v_it);
       normal      *= dot(translation, normal);
       translation -= normal;
-      translation += vector_cast<typename Mesh::Normal>(orig_position(v_it));
-      set_new_position(v_it, translation);
+      translation += vector_cast<typename Mesh::Normal>(orig_position(*v_it));
+      set_new_position(*v_it, translation);
     }
   }
 }
@@ -390,17 +396,17 @@ local_error_check()
 
   for (; v_it != v_end; ++v_it)
   {
-    if (is_active(v_it))
+    if (is_active(*v_it))
     {
-      translation  = new_position(v_it) - orig_position(v_it);
+      translation  = new_position(*v_it) - orig_position(*v_it);
 
-      s = fabs(dot(translation, orig_normal(v_it)));
+      s = fabs(dot(translation, orig_normal(*v_it)));
 
       if (s > tolerance_)
       {
-	translation *= (tolerance_ / s);
-	translation += vector_cast<NormalType>(orig_position(v_it));
-	set_new_position(v_it, translation);
+        translation *= (tolerance_ / s);
+        translation += vector_cast<NormalType>(orig_position(*v_it));
+        set_new_position(*v_it, translation);
       }
     }
   }
@@ -419,8 +425,8 @@ move_points()
                              v_end(mesh_.vertices_end());
 
   for (; v_it != v_end; ++v_it)
-    if (is_active(v_it))
-      mesh_.set_point(v_it, mesh_.property(new_positions_, v_it));
+    if (is_active(*v_it))
+      mesh_.set_point(*v_it, mesh_.property(new_positions_, *v_it));
 }
 
 

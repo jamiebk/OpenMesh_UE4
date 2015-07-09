@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -140,7 +147,7 @@ compute_weights(LaplaceWeighting _weighting)
 
   // init vertex weights
   for (v_it=Base::mesh_.vertices_begin(); v_it!=v_end; ++v_it)
-    Base::mesh_.property(vertex_weights_, v_it) = 0.0;
+    Base::mesh_.property(vertex_weights_, *v_it) = 0.0;
 
 
 
@@ -151,14 +158,14 @@ compute_weights(LaplaceWeighting _weighting)
     {
       for (e_it=Base::mesh_.edges_begin(); e_it!=e_end; ++e_it)
       {
-	heh0   = Base::mesh_.halfedge_handle(e_it.handle(), 0);
-	heh1   = Base::mesh_.halfedge_handle(e_it.handle(), 1);
-	v0     = Base::mesh_.to_vertex_handle(heh0);
-	v1     = Base::mesh_.to_vertex_handle(heh1);
-	
-	Base::mesh_.property(edge_weights_, e_it) = 1.0;
-	Base::mesh_.property(vertex_weights_, v0) += 1.0;
-	Base::mesh_.property(vertex_weights_, v1) += 1.0;
+        heh0   = Base::mesh_.halfedge_handle(*e_it, 0);
+        heh1   = Base::mesh_.halfedge_handle(*e_it, 1);
+        v0     = Base::mesh_.to_vertex_handle(heh0);
+        v1     = Base::mesh_.to_vertex_handle(heh1);
+
+        Base::mesh_.property(edge_weights_, *e_it)  = 1.0;
+        Base::mesh_.property(vertex_weights_, v0)  += 1.0;
+        Base::mesh_.property(vertex_weights_, v1)  += 1.0;
       }
 
       break;
@@ -170,31 +177,31 @@ compute_weights(LaplaceWeighting _weighting)
     {
       for (e_it=Base::mesh_.edges_begin(); e_it!=e_end; ++e_it)
       {
-	weight = 0.0;
-	
-	heh0   = Base::mesh_.halfedge_handle(e_it.handle(), 0);
-	v0     = Base::mesh_.to_vertex_handle(heh0);
-	p0     = &Base::mesh_.point(v0);
-	
-	heh1   = Base::mesh_.halfedge_handle(e_it.handle(), 1);
-	v1     = Base::mesh_.to_vertex_handle(heh1);
-	p1     = &Base::mesh_.point(v1);
-	
-	heh2   = Base::mesh_.next_halfedge_handle(heh0);
-	p2     = &Base::mesh_.point(Base::mesh_.to_vertex_handle(heh2));
-	d0     = (*p0 - *p2); d0.normalize();
-	d1     = (*p1 - *p2); d1.normalize();
-	weight += 1.0 / tan(acos(std::max(lb, std::min(ub, dot(d0,d1) ))));
-	
-	heh2   = Base::mesh_.next_halfedge_handle(heh1);
-	p2     = &Base::mesh_.point(Base::mesh_.to_vertex_handle(heh2));
-	d0     = (*p0 - *p2); d0.normalize();
-	d1     = (*p1 - *p2); d1.normalize();
-	weight += 1.0 / tan(acos(std::max(lb, std::min(ub, dot(d0,d1) ))));
-	
-	Base::mesh_.property(edge_weights_, e_it) = weight;
-	Base::mesh_.property(vertex_weights_, v0)  += weight;
-	Base::mesh_.property(vertex_weights_, v1)  += weight;
+        weight = 0.0;
+
+        heh0   = Base::mesh_.halfedge_handle(*e_it, 0);
+        v0     = Base::mesh_.to_vertex_handle(heh0);
+        p0     = &Base::mesh_.point(v0);
+
+        heh1   = Base::mesh_.halfedge_handle(*e_it, 1);
+        v1     = Base::mesh_.to_vertex_handle(heh1);
+        p1     = &Base::mesh_.point(v1);
+
+        heh2   = Base::mesh_.next_halfedge_handle(heh0);
+        p2     = &Base::mesh_.point(Base::mesh_.to_vertex_handle(heh2));
+        d0     = (*p0 - *p2); d0.normalize();
+        d1     = (*p1 - *p2); d1.normalize();
+        weight += static_cast<typename Mesh::Scalar>(1.0) / tan(acos(std::max(lb, std::min(ub, dot(d0,d1) ))));
+
+        heh2   = Base::mesh_.next_halfedge_handle(heh1);
+        p2     = &Base::mesh_.point(Base::mesh_.to_vertex_handle(heh2));
+        d0     = (*p0 - *p2); d0.normalize();
+        d1     = (*p1 - *p2); d1.normalize();
+        weight += static_cast<typename Mesh::Scalar>(1.0) / tan(acos(std::max(lb, std::min(ub, dot(d0,d1) ))));
+
+        Base::mesh_.property(edge_weights_, *e_it) = weight;
+        Base::mesh_.property(vertex_weights_, v0)  += weight;
+        Base::mesh_.property(vertex_weights_, v1)  += weight;
       }
       break;
     }
@@ -206,9 +213,9 @@ compute_weights(LaplaceWeighting _weighting)
   // after: one over sum of edge weights
   for (v_it=Base::mesh_.vertices_begin(); v_it!=v_end; ++v_it)
   {
-    weight = Base::mesh_.property(vertex_weights_, v_it);
+    weight = Base::mesh_.property(vertex_weights_, *v_it);
     if (weight)
-      Base::mesh_.property(vertex_weights_, v_it) = 1.0 / weight;
+      Base::mesh_.property(vertex_weights_, *v_it) = static_cast<typename Mesh::Scalar>(1.0) / weight;
   }
 }
 

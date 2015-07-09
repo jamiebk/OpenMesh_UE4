@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -48,7 +55,7 @@ namespace OpenMesh {
 
 /** \brief Connectivity Class for Triangle Meshes
 */
-class TriConnectivity : public PolyConnectivity
+class OPENMESHDLLEXPORT TriConnectivity : public PolyConnectivity
 {
 public:
 
@@ -72,20 +79,40 @@ public:
   
   /** \name Addding items to a mesh
   */
+
   //@{
-  /** Override OpenMesh::Mesh::PolyMeshT::add_face(). Faces that aren't
-      triangles will be triangulated and added. In this case an
-      invalid face handle will be returned.  */
-  FaceHandle add_face(const std::vector<VertexHandle>& _vhandles)
-  { return add_face(&_vhandles.front(), _vhandles.size()); }
-  
+
+  /** \brief Add a face with arbitrary valence to the triangle mesh
+   *
+   * Override OpenMesh::Mesh::PolyMeshT::add_face(). Faces that aren't
+   * triangles will be triangulated and added. In this case an
+   * invalid face handle will be returned.
+   *
+   *
+   * */
   FaceHandle add_face(const VertexHandle* _vhandles, size_t _vhs_size);
   
-  FaceHandle add_face(VertexHandle _vh0, VertexHandle _vh1, VertexHandle _vh2)
-  { 
-    VertexHandle vhs[3] = { _vh0, _vh1, _vh2 };
-    return PolyConnectivity::add_face(vhs, 3); 
-  }
+  /** \brief Add a face with arbitrary valence to the triangle mesh
+     *
+     * Override OpenMesh::Mesh::PolyMeshT::add_face(). Faces that aren't
+     * triangles will be triangulated and added. In this case an
+     * invalid face handle will be returned.
+     *
+     *
+     * */
+  FaceHandle add_face(const std::vector<VertexHandle>& _vhandles);
+
+  /** \brief Add a face to the mesh (triangle)
+   *
+   * This function adds a triangle to the mesh. The triangle is passed directly
+   * to the underlying PolyConnectivity as we don't explicitly need to triangulate something.
+   *
+   * @param _vh0 VertexHandle 1
+   * @param _vh1 VertexHandle 2
+   * @param _vh2 VertexHandle 3
+   * @return FaceHandle of the added face (invalid, if the operation failed)
+   */
+  FaceHandle add_face(VertexHandle _vh0, VertexHandle _vh1, VertexHandle _vh2);
   
   //@}
 
@@ -126,12 +153,48 @@ public:
       Check for topological correctness first using is_flip_ok(). */
   void flip(EdgeHandle _eh);
 
-  /// Edge split (= 2-to-4 split)
+
+  /** \brief Edge split (= 2-to-4 split)
+   *
+   *
+   * The function will introduce two new faces ( non-boundary case) or
+   * one additional face (if edge is boundary)
+   *
+   * \note The properties of the new edges, halfedges, and faces will be undefined!
+   *
+   * @param _eh Edge handle that should be splitted
+   * @param _vh Vertex handle that will be inserted at the edge
+   */
   void split(EdgeHandle _eh, VertexHandle _vh);
 
-  /// Face split (= 1-to-3 split, calls corresponding PolyMeshT function).
+  /** \brief Edge split (= 2-to-4 split)
+   *
+   * The function will introduce two new faces ( non-boundary case) or
+   * one additional face (if edge is boundary)
+   *
+   * \note The properties of the new edges will be adjusted to the properties of the original edge
+   * \note The properties of the new faces and halfedges will be undefined
+   *
+   * @param _eh Edge handle that should be splitted
+   * @param _vh Vertex handle that will be inserted at the edge
+   */
+  void split_copy(EdgeHandle _eh, VertexHandle _vh);
+
+  /** \brief Face split (= 1-to-3) split, calls corresponding PolyMeshT function).
+   *
+   * @param _fh Face handle that should be splitted
+   * @param _vh Vertex handle that will be inserted at the face
+   */
   inline void split(FaceHandle _fh, VertexHandle _vh)
   { PolyConnectivity::split(_fh, _vh); }
+
+  /** \brief Face split (= 1-to-3) split, calls corresponding PolyMeshT function).
+   *
+   * @param _fh Face handle that should be splitted
+   * @param _vh Vertex handle that will be inserted at the face
+   */
+  inline void split_copy(FaceHandle _fh, VertexHandle _vh)
+  { PolyConnectivity::split_copy(_fh, _vh); }
 
   //@}
 

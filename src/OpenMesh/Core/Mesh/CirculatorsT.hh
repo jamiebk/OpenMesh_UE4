@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -52,3530 +59,536 @@
 //== INCLUDES =================================================================
 
 #include <OpenMesh/Core/System/config.h>
-#include <assert.h>
+#include <cassert>
 #include <cstddef>
-
+#include <iterator>
 
 //== NAMESPACES ===============================================================
 
 namespace OpenMesh {
 namespace Iterators {
 
-
-//== FORWARD DECLARATIONS =====================================================
-
-
-template <class Mesh> class VertexVertexIterT;
-template <class Mesh> class VertexIHalfedgeIterT;
-template <class Mesh> class VertexOHalfedgeIterT;
-template <class Mesh> class VertexEdgeIterT;
-template <class Mesh> class VertexFaceIterT;
-
-template <class Mesh> class ConstVertexVertexIterT;
-template <class Mesh> class ConstVertexIHalfedgeIterT;
-template <class Mesh> class ConstVertexOHalfedgeIterT;
-template <class Mesh> class ConstVertexEdgeIterT;
-template <class Mesh> class ConstVertexFaceIterT;
-
-template <class Mesh> class FaceVertexIterT;
-template <class Mesh> class FaceHalfedgeIterT;
-template <class Mesh> class FaceEdgeIterT;
-template <class Mesh> class FaceFaceIterT;
-
-template <class Mesh> class ConstFaceVertexIterT;
-template <class Mesh> class ConstFaceHalfedgeIterT;
-template <class Mesh> class ConstFaceEdgeIterT;
-template <class Mesh> class ConstFaceFaceIterT;
-
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class VertexVertexIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class VertexVertexIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Vertex             value_type;
-  typedef typename Mesh::VertexHandle       value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Vertex&      reference;
-  typedef const typename Mesh::Vertex*      pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Vertex&            reference;
-  typedef typename Mesh::Vertex*            pointer;
-#endif
-
-
-
-  /// Default constructor
-  VertexVertexIterT() : mesh_(0), lap_counter_(0) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  VertexVertexIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  VertexVertexIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  VertexVertexIterT(const VertexVertexIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  VertexVertexIterT& operator=(const VertexVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  VertexVertexIterT(const VertexVertexIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  VertexVertexIterT& operator=(const VertexVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexVertexIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const VertexVertexIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const VertexVertexIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  VertexVertexIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  VertexVertexIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::VertexHandle handle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_);; 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::VertexHandle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_);; 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const {
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const {
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh, class CenterEntityHandle, bool CW>
+class GenericCirculator_CenterEntityFnsT {
+    public:
+        static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter);
+        static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter);
 };
 
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class ConstVertexVertexIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class ConstVertexVertexIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Vertex             value_type;
-  typedef typename Mesh::VertexHandle       value_handle;
-
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Vertex&      reference;
-  typedef const typename Mesh::Vertex*      pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Vertex&            reference;
-  typedef typename Mesh::Vertex*            pointer;
-#endif
-
-
-
-  /// Default constructor
-  ConstVertexVertexIterT() : mesh_(0), lap_counter_(0) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  ConstVertexVertexIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstVertexVertexIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  ConstVertexVertexIterT(const ConstVertexVertexIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  ConstVertexVertexIterT& operator=(const ConstVertexVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstVertexVertexIterT(const VertexVertexIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  ConstVertexVertexIterT& operator=(const VertexVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexVertexIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstVertexVertexIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstVertexVertexIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstVertexVertexIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstVertexVertexIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::VertexHandle handle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_);; 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::VertexHandle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_);; 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh>
+class GenericCirculator_CenterEntityFnsT<Mesh, typename Mesh::VertexHandle, true> {
+    public:
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            heh = mesh->cw_rotated_halfedge_handle(heh);
+            if (heh == start) ++lap_counter;
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            if (heh == start) --lap_counter;
+            heh = mesh->ccw_rotated_halfedge_handle(heh);
+        }
 };
 
-
-
-//== CLASS DEFINITION =========================================================
-
-
-/** \class VertexOHalfedgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class VertexOHalfedgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Halfedge           value_type;
-  typedef typename Mesh::HalfedgeHandle     value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Halfedge&    reference;
-  typedef const typename Mesh::Halfedge*    pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Halfedge&          reference;
-  typedef typename Mesh::Halfedge*          pointer;
-#endif
-
-
-
-  /// Default constructor
-  VertexOHalfedgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  VertexOHalfedgeIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  VertexOHalfedgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  VertexOHalfedgeIterT(const VertexOHalfedgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  VertexOHalfedgeIterT& operator=(const VertexOHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  VertexOHalfedgeIterT(const VertexOHalfedgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  VertexOHalfedgeIterT& operator=(const VertexOHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexOHalfedgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const VertexOHalfedgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const VertexOHalfedgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  VertexOHalfedgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  VertexOHalfedgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::HalfedgeHandle handle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::HalfedgeHandle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const {
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh>
+class GenericCirculator_CenterEntityFnsT<Mesh, typename Mesh::FaceHandle, true> {
+    public:
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            heh = mesh->next_halfedge_handle(heh);
+            if (heh == start) ++lap_counter;
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            if (heh == start) --lap_counter;
+            heh = mesh->prev_halfedge_handle(heh);
+        }
 };
 
+/////////////////////////////////////////////////////////////
+// CCW
 
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class ConstVertexOHalfedgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class ConstVertexOHalfedgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Halfedge           value_type;
-  typedef typename Mesh::HalfedgeHandle     value_handle;
-
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Halfedge&    reference;
-  typedef const typename Mesh::Halfedge*    pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Halfedge&          reference;
-  typedef typename Mesh::Halfedge*          pointer;
-#endif
-
-
-
-  /// Default constructor
-  ConstVertexOHalfedgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  ConstVertexOHalfedgeIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstVertexOHalfedgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  ConstVertexOHalfedgeIterT(const ConstVertexOHalfedgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  ConstVertexOHalfedgeIterT& operator=(const ConstVertexOHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstVertexOHalfedgeIterT(const VertexOHalfedgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  ConstVertexOHalfedgeIterT& operator=(const VertexOHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexOHalfedgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstVertexOHalfedgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstVertexOHalfedgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstVertexOHalfedgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstVertexOHalfedgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::HalfedgeHandle handle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::HalfedgeHandle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh>
+class GenericCirculator_CenterEntityFnsT<Mesh, typename Mesh::VertexHandle, false> {
+    public:
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            heh = mesh->ccw_rotated_halfedge_handle(heh);
+            if (heh == start) ++lap_counter;
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            if (heh == start) --lap_counter;
+            heh = mesh->cw_rotated_halfedge_handle(heh);
+        }
 };
 
+template<class Mesh>
+class GenericCirculator_CenterEntityFnsT<Mesh, typename Mesh::FaceHandle, false>  {
+    public:
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            heh = mesh->prev_halfedge_handle(heh);
+            if (heh == start) ++lap_counter;
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            if (heh == start) --lap_counter;
+            heh = mesh->next_halfedge_handle(heh);
+        }
+};
+/////////////////////////////////////////////////////////////
 
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class VertexIHalfedgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class VertexIHalfedgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Halfedge           value_type;
-  typedef typename Mesh::HalfedgeHandle     value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Halfedge&    reference;
-  typedef const typename Mesh::Halfedge*    pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Halfedge&          reference;
-  typedef typename Mesh::Halfedge*          pointer;
-#endif
-
-
-
-  /// Default constructor
-  VertexIHalfedgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  VertexIHalfedgeIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  VertexIHalfedgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  VertexIHalfedgeIterT(const VertexIHalfedgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  VertexIHalfedgeIterT& operator=(const VertexIHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  VertexIHalfedgeIterT(const VertexIHalfedgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  VertexIHalfedgeIterT& operator=(const VertexIHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexIHalfedgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const VertexIHalfedgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const VertexIHalfedgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  VertexIHalfedgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  VertexIHalfedgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::HalfedgeHandle handle() const {
-    assert(mesh_);
-    return mesh_->opposite_halfedge_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::HalfedgeHandle() const {
-    assert(mesh_);
-    return mesh_->opposite_halfedge_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh, class CenterEntityHandle, class ValueHandle>
+class GenericCirculator_DereferenciabilityCheckT {
+    public:
+        //inline static bool isDereferenciable(const Mesh *mesh, const typename Mesh::HalfedgeHandle &heh, const typename Mesh::HalfedgeHandle &start, const int &lap_counter);
 };
 
-
-
-//== CLASS DEFINITION =========================================================
-
-
-/** \class ConstVertexIHalfedgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class ConstVertexIHalfedgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Halfedge           value_type;
-  typedef typename Mesh::HalfedgeHandle     value_handle;
-
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Halfedge&    reference;
-  typedef const typename Mesh::Halfedge*    pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Halfedge&          reference;
-  typedef typename Mesh::Halfedge*          pointer;
-#endif
-
-
-
-  /// Default constructor
-  ConstVertexIHalfedgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  ConstVertexIHalfedgeIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstVertexIHalfedgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  ConstVertexIHalfedgeIterT(const ConstVertexIHalfedgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  ConstVertexIHalfedgeIterT& operator=(const ConstVertexIHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstVertexIHalfedgeIterT(const VertexIHalfedgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  ConstVertexIHalfedgeIterT& operator=(const VertexIHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexIHalfedgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstVertexIHalfedgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstVertexIHalfedgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstVertexIHalfedgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstVertexIHalfedgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::HalfedgeHandle handle() const {
-    assert(mesh_);
-    return mesh_->opposite_halfedge_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::HalfedgeHandle() const {
-    assert(mesh_);
-    return mesh_->opposite_halfedge_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh>
+class GenericCirculator_DereferenciabilityCheckT<Mesh, typename Mesh::FaceHandle, typename Mesh::FaceHandle> {
+    public:
+        inline static bool isDereferenciable(const Mesh *mesh, const typename Mesh::HalfedgeHandle &heh) {
+            return mesh->face_handle(mesh->opposite_halfedge_handle(heh)).is_valid();
+        }
 };
 
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class VertexEdgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class VertexEdgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Edge               value_type;
-  typedef typename Mesh::EdgeHandle         value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Edge&        reference;
-  typedef const typename Mesh::Edge*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Edge&              reference;
-  typedef typename Mesh::Edge*              pointer;
-#endif
-
-
-
-  /// Default constructor
-  VertexEdgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  VertexEdgeIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  VertexEdgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  VertexEdgeIterT(const VertexEdgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  VertexEdgeIterT& operator=(const VertexEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  VertexEdgeIterT(const VertexEdgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  VertexEdgeIterT& operator=(const VertexEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexEdgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const VertexEdgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const VertexEdgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  VertexEdgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  VertexEdgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::EdgeHandle handle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::EdgeHandle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh>
+class GenericCirculator_DereferenciabilityCheckT<Mesh, typename Mesh::VertexHandle, typename Mesh::FaceHandle> {
+    public:
+        inline static bool isDereferenciable(const Mesh *mesh, const typename Mesh::HalfedgeHandle &heh) {
+            return mesh->face_handle(heh).is_valid();
+        }
 };
 
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class ConstVertexEdgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class ConstVertexEdgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Edge               value_type;
-  typedef typename Mesh::EdgeHandle         value_handle;
-
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Edge&        reference;
-  typedef const typename Mesh::Edge*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Edge&              reference;
-  typedef typename Mesh::Edge*              pointer;
-#endif
-
-
-
-  /// Default constructor
-  ConstVertexEdgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  ConstVertexEdgeIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstVertexEdgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  ConstVertexEdgeIterT(const ConstVertexEdgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  ConstVertexEdgeIterT& operator=(const ConstVertexEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstVertexEdgeIterT(const VertexEdgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  ConstVertexEdgeIterT& operator=(const VertexEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexEdgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstVertexEdgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstVertexEdgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstVertexEdgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->cw_rotated_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstVertexEdgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->ccw_rotated_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::EdgeHandle handle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::EdgeHandle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh, class CenterEntityHandle, class ValueHandle, bool CW = true>
+class GenericCirculator_ValueHandleFnsT {
+    public:
+        inline static bool is_valid(const typename Mesh::HalfedgeHandle &heh, const int lap_counter) {
+            return ( heh.is_valid() && (lap_counter == 0 ) );
+        }
+        inline static void init(const Mesh*, typename Mesh::HalfedgeHandle&, typename Mesh::HalfedgeHandle&, int&) {};
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, CW>::increment(mesh, heh, start, lap_counter);
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, CW>::decrement(mesh, heh, start, lap_counter);
+        }
 };
 
+template<class Mesh, class CenterEntityHandle, bool CW>
+class GenericCirculator_ValueHandleFnsT<Mesh, CenterEntityHandle, typename Mesh::FaceHandle, CW> {
+    public:
+        typedef GenericCirculator_DereferenciabilityCheckT<Mesh, CenterEntityHandle, typename Mesh::FaceHandle> GenericCirculator_DereferenciabilityCheck;
 
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class VertexFaceIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class VertexFaceIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Face               value_type;
-  typedef typename Mesh::FaceHandle         value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Face&        reference;
-  typedef const typename Mesh::Face*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Face&              reference;
-  typedef typename Mesh::Face*              pointer;
-#endif
-
-
-
-  /// Default constructor
-  VertexFaceIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  VertexFaceIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid() && !_end) operator++();; }
-
-
-  /// Construct with mesh and start halfedge
-  VertexFaceIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Copy constructor
-  VertexFaceIterT(const VertexFaceIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Assignment operator
-  VertexFaceIterT& operator=(const VertexFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  VertexFaceIterT(const VertexFaceIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// assign from non-const circulator
-  VertexFaceIterT& operator=(const VertexFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexFaceIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const VertexFaceIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const VertexFaceIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  VertexFaceIterT& operator++() { 
-    assert(mesh_);
-    do { heh_=mesh_->cw_rotated_halfedge_handle(heh_); if(heh_ == start_) lap_counter_++; } while ((*this) && (!handle().is_valid()));;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  VertexFaceIterT& operator--() { 
-    assert(mesh_);
-    do { if(heh_ == start_) lap_counter_--; heh_=mesh_->ccw_rotated_halfedge_handle(heh_); } while ((*this) && (!handle().is_valid()));;
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::FaceHandle handle() const {
-    assert(mesh_);
-    return mesh_->face_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::FaceHandle() const {
-    assert(mesh_);
-    return mesh_->face_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+        inline static bool is_valid(const typename Mesh::HalfedgeHandle &heh, const int lap_counter) {
+            return ( heh.is_valid() &&  (lap_counter == 0));
+        }
+        inline static void init(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            if (heh.is_valid() && !GenericCirculator_DereferenciabilityCheck::isDereferenciable(mesh, heh) && lap_counter == 0 )
+                increment(mesh, heh, start, lap_counter);
+        };
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            do {
+                GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, CW>::increment(mesh, heh, start, lap_counter);
+            } while (is_valid(heh, lap_counter) && !GenericCirculator_DereferenciabilityCheck::isDereferenciable(mesh, heh));
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            do {
+                GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, CW>::decrement(mesh, heh, start, lap_counter);
+            } while (is_valid(heh, lap_counter) && !GenericCirculator_DereferenciabilityCheck::isDereferenciable(mesh, heh));
+        }
 };
 
+template<class Mesh>
+class GenericCirculatorBaseT {
+    public:
+        typedef const Mesh* mesh_ptr;
+        typedef const Mesh& mesh_ref;
 
+    public:
+        GenericCirculatorBaseT() : mesh_(0), lap_counter_(0) {}
 
-//== CLASS DEFINITION =========================================================
+        GenericCirculatorBaseT(mesh_ref mesh, HalfedgeHandle heh, bool end = false) :
+            mesh_(&mesh), start_(heh), heh_(heh), lap_counter_(static_cast<int>(end)) {}
 
-	      
-/** \class ConstVertexFaceIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
+        GenericCirculatorBaseT(const GenericCirculatorBaseT &rhs) :
+            mesh_(rhs.mesh_), start_(rhs.start_), heh_(rhs.heh_), lap_counter_(rhs.lap_counter_) {}
 
-template <class Mesh>
-class ConstVertexFaceIterT
-{
- public:
+        inline typename Mesh::FaceHandle toFaceHandle() const {
+            return mesh_->face_handle(heh_);
+        }
 
+        inline typename Mesh::FaceHandle toOppositeFaceHandle() const {
+            return mesh_->face_handle(toOppositeHalfedgeHandle());
+        }
 
-  //--- Typedefs ---
+        inline typename Mesh::EdgeHandle toEdgeHandle() const {
+            return mesh_->edge_handle(heh_);
+        }
 
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
+        inline typename Mesh::HalfedgeHandle toHalfedgeHandle() const {
+            return heh_;
+        }
 
-  typedef typename Mesh::Face               value_type;
-  typedef typename Mesh::FaceHandle         value_handle;
+        inline typename Mesh::HalfedgeHandle toOppositeHalfedgeHandle() const {
+            return mesh_->opposite_halfedge_handle(heh_);
+        }
 
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Face&        reference;
-  typedef const typename Mesh::Face*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Face&              reference;
-  typedef typename Mesh::Face*              pointer;
-#endif
+        inline typename Mesh::VertexHandle toVertexHandle() const {
+            return mesh_->to_vertex_handle(heh_);
+        }
 
+        inline GenericCirculatorBaseT &operator=(const GenericCirculatorBaseT &rhs) {
+            mesh_ = rhs.mesh_;
+            start_ = rhs.start_;
+            heh_ = rhs.heh_;
+            lap_counter_ = rhs.lap_counter_;
+            return *this;
+        }
 
+        inline bool operator==(const GenericCirculatorBaseT &rhs) const {
+            return mesh_ == rhs.mesh_ && start_ == rhs.start_ && heh_ == rhs.heh_ && lap_counter_ == rhs.lap_counter_;
+        }
 
-  /// Default constructor
-  ConstVertexFaceIterT() : mesh_(0), lap_counter_(false) {}
+        inline bool operator!=(const GenericCirculatorBaseT &rhs) const {
+            return !operator==(rhs);
+        }
 
-
-  /// Construct with mesh and a typename Mesh::VertexHandle
-  ConstVertexFaceIterT(mesh_ref _mesh, typename Mesh::VertexHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid() && !_end) operator++();; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstVertexFaceIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Copy constructor
-  ConstVertexFaceIterT(const ConstVertexFaceIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Assignment operator
-  ConstVertexFaceIterT& operator=(const ConstVertexFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstVertexFaceIterT(const VertexFaceIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// assign from non-const circulator
-  ConstVertexFaceIterT& operator=(const VertexFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstVertexFaceIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstVertexFaceIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstVertexFaceIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstVertexFaceIterT& operator++() { 
-    assert(mesh_);
-    do { heh_=mesh_->cw_rotated_halfedge_handle(heh_); if(heh_ == start_) lap_counter_++; }  while ((*this) && (!handle().is_valid()));;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstVertexFaceIterT& operator--() { 
-    assert(mesh_);
-    do { if(heh_ == start_) lap_counter_--; heh_=mesh_->ccw_rotated_halfedge_handle(heh_); } while ((*this) && (!handle().is_valid()));;
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::FaceHandle handle() const {
-    assert(mesh_);
-    return mesh_->face_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::FaceHandle() const {
-    assert(mesh_);
-    return mesh_->face_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+    protected:
+        mesh_ptr mesh_;
+        typename Mesh::HalfedgeHandle start_, heh_;
+        int lap_counter_;
 };
 
+template<class Mesh, class CenterEntityHandle, class ValueHandle,
+        ValueHandle (GenericCirculatorBaseT<Mesh>::*Handle2Value)() const, bool CW = true >
+class GenericCirculatorT : protected GenericCirculatorBaseT<Mesh> {
+    public:
+        typedef std::ptrdiff_t difference_type;
+        typedef ValueHandle value_type;
+        typedef const value_type& reference;
+        typedef const value_type* pointer;
+        typedef std::bidirectional_iterator_tag iterator_category;
 
+        typedef typename GenericCirculatorBaseT<Mesh>::mesh_ptr mesh_ptr;
+        typedef typename GenericCirculatorBaseT<Mesh>::mesh_ref mesh_ref;
+        typedef GenericCirculator_ValueHandleFnsT<Mesh, CenterEntityHandle, ValueHandle, CW> GenericCirculator_ValueHandleFns;
 
-//== CLASS DEFINITION =========================================================
+    public:
+        GenericCirculatorT() {}
+        GenericCirculatorT(mesh_ref mesh, CenterEntityHandle start, bool end = false) :
+            GenericCirculatorBaseT<Mesh>(mesh, mesh.halfedge_handle(start), end) {
 
+            GenericCirculator_ValueHandleFns::init(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+        }
+        GenericCirculatorT(mesh_ref mesh, HalfedgeHandle heh, bool end = false) :
+            GenericCirculatorBaseT<Mesh>(mesh, heh, end) {
 
-/** \class FaceVertexIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
+            GenericCirculator_ValueHandleFns::init(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+        }
+        GenericCirculatorT(const GenericCirculatorT &rhs) : GenericCirculatorBaseT<Mesh>(rhs) {}
 
-template <class Mesh>
-class FaceVertexIterT
-{
- public:
+        friend class GenericCirculatorT<Mesh,CenterEntityHandle,ValueHandle,Handle2Value,!CW>;
+        explicit GenericCirculatorT( const GenericCirculatorT<Mesh,CenterEntityHandle,ValueHandle,Handle2Value,!CW>& rhs )
+        :GenericCirculatorBaseT<Mesh>(rhs){}
 
+        GenericCirculatorT& operator++() {
+            assert(this->mesh_);
+            GenericCirculator_ValueHandleFns::increment(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+            return *this;
+        }
+        GenericCirculatorT& operator--() {
+            assert(this->mesh_);
+            GenericCirculator_ValueHandleFns::decrement(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+            return *this;
+        }
 
-  //--- Typedefs ---
+        /// Post-increment
+        GenericCirculatorT operator++(int) {
+            assert(this->mesh_);
+            GenericCirculatorT cpy(*this);
+            ++(*this);
+            return cpy;
+        }
 
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
+        /// Post-decrement
+        GenericCirculatorT operator--(int) {
+            assert(this->mesh_);
+            GenericCirculatorT cpy(*this);
+            --(*this);
+            return cpy;
+        }
 
-  typedef typename Mesh::Vertex             value_type;
-  typedef typename Mesh::VertexHandle       value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Vertex&      reference;
-  typedef const typename Mesh::Vertex*      pointer;
+        /// Standard dereferencing operator.
+        value_type operator*() const {
+#ifndef NDEBUG
+            assert(this->heh_.is_valid());
+            value_type res = (this->*Handle2Value)();
+            assert(res.is_valid());
+            return res;
 #else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Vertex&            reference;
-  typedef typename Mesh::Vertex*            pointer;
+            return (this->*Handle2Value)();
 #endif
+        }
 
+        /**
+         * @brief Pointer dereferentiation.
+         *
+         * This returns a pointer which points to a handle
+         * that loses its validity once this dereferentiation is
+         * invoked again. Thus, do not store the result of
+         * this operation.
+         */
+        pointer operator->() const {
+            pointer_deref_value = **this;
+            return &pointer_deref_value;
+        }
 
+        GenericCirculatorT &operator=(const GenericCirculatorT &rhs) {
+            GenericCirculatorBaseT<Mesh>::operator=(rhs);
+            return *this;
+        };
 
-  /// Default constructor
-  FaceVertexIterT() : mesh_(0), lap_counter_(false) {}
+        bool operator==(const GenericCirculatorT &rhs) const {
+            return GenericCirculatorBaseT<Mesh>::operator==(rhs);
+        }
 
+        bool operator!=(const GenericCirculatorT &rhs) const {
+            return GenericCirculatorBaseT<Mesh>::operator!=(rhs);
+        }
 
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  FaceVertexIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
+        bool is_valid() const {
+            return GenericCirculator_ValueHandleFns::is_valid(this->heh_, this->lap_counter_);
+        }
 
+        template<typename STREAM>
+        friend STREAM &operator<< (STREAM &s, const GenericCirculatorT &self) {
+            return s << self.mesh_ << ", " << self.start_.idx() << ", " << self.heh_.idx() << ", " << self.lap_counter_;
+        }
 
-  /// Construct with mesh and start halfedge
-  FaceVertexIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  FaceVertexIterT(const FaceVertexIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  FaceVertexIterT& operator=(const FaceVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  FaceVertexIterT(const FaceVertexIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  FaceVertexIterT& operator=(const FaceVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceVertexIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const FaceVertexIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-            (start_  == _rhs.start_) &&
-            (heh_    == _rhs.heh_) &&
-            (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const FaceVertexIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  FaceVertexIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->next_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  FaceVertexIterT& operator--() {
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->prev_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::VertexHandle handle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::VertexHandle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+    private:
+        mutable value_type pointer_deref_value;
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////           OLD           ///////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// OLD CIRCULATORS
+// deprecated circulators, will be removed soon
+// if you remove these circulators and go to the old ones, PLEASE ENABLE FOLLOWING UNITTESTS:
+//
+// OpenMeshTrimeshCirculatorVertexIHalfEdge.VertexIHalfEdgeIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorVertexEdge.VertexEdgeIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorVertexVertex.VertexVertexIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorVertexOHalfEdge.VertexOHalfEdgeIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorVertexFace.VertexFaceIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorVertexFace.VertexFaceIterWithoutHolesDecrement
+// OpenMeshTrimeshCirculatorFaceEdge.FaceEdgeIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorFaceFace.FaceFaceIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorFaceHalfEdge.FaceHalfedgeIterWithoutHolesIncrement
+// OpenMeshTrimeshCirculatorFaceVertex.FaceVertexIterCheckInvalidationAtEnds
+// OpenMeshTrimeshCirculatorFaceHalfEdge.FaceHalfedgeIterCheckInvalidationAtEnds
+//
 
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class ConstFaceVertexIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class ConstFaceVertexIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Vertex             value_type;
-  typedef typename Mesh::VertexHandle       value_handle;
-
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Vertex&      reference;
-  typedef const typename Mesh::Vertex*      pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Vertex&            reference;
-  typedef typename Mesh::Vertex*            pointer;
-#endif
-
-
-
-  /// Default constructor
-  ConstFaceVertexIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  ConstFaceVertexIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstFaceVertexIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  ConstFaceVertexIterT(const ConstFaceVertexIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  ConstFaceVertexIterT& operator=(const ConstFaceVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstFaceVertexIterT(const FaceVertexIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  ConstFaceVertexIterT& operator=(const FaceVertexIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceVertexIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstFaceVertexIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstFaceVertexIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstFaceVertexIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->next_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstFaceVertexIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->prev_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::VertexHandle handle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::VertexHandle() const {
-    assert(mesh_);
-    return mesh_->to_vertex_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+template<class Mesh, class CenterEntityHandle, class ValueHandle>
+class GenericCirculator_ValueHandleFnsT_DEPRECATED {
+    public:
+        inline static bool is_valid(const typename Mesh::HalfedgeHandle &heh,const typename Mesh::HalfedgeHandle &start, const int lap_counter) {
+            return ( heh.is_valid() && ((start != heh) || (lap_counter == 0 )) );
+        }
+        inline static void init(const Mesh*, typename Mesh::HalfedgeHandle&, typename Mesh::HalfedgeHandle&, int&) {};
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, true>::increment(mesh, heh, start, lap_counter);
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, true>::decrement(mesh, heh, start, lap_counter);
+        }
 };
 
+template<class Mesh, class CenterEntityHandle>
+class GenericCirculator_ValueHandleFnsT_DEPRECATED<Mesh, CenterEntityHandle, typename Mesh::FaceHandle> {
+    public:
+        typedef GenericCirculator_DereferenciabilityCheckT<Mesh, CenterEntityHandle, typename Mesh::FaceHandle> GenericCirculator_DereferenciabilityCheck;
 
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class FaceHalfedgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class FaceHalfedgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Halfedge           value_type;
-  typedef typename Mesh::HalfedgeHandle     value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Halfedge&    reference;
-  typedef const typename Mesh::Halfedge*    pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Halfedge&          reference;
-  typedef typename Mesh::Halfedge*          pointer;
-#endif
-
-
-
-  /// Default constructor
-  FaceHalfedgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  FaceHalfedgeIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  FaceHalfedgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  FaceHalfedgeIterT(const FaceHalfedgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  FaceHalfedgeIterT& operator=(const FaceHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  FaceHalfedgeIterT(const FaceHalfedgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  FaceHalfedgeIterT& operator=(const FaceHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceHalfedgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const FaceHalfedgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const FaceHalfedgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  FaceHalfedgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->next_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  FaceHalfedgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->prev_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns.
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::HalfedgeHandle handle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::HalfedgeHandle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+        inline static bool is_valid(const typename Mesh::HalfedgeHandle &heh, const typename Mesh::HalfedgeHandle &start, const int lap_counter) {
+            return ( heh.is_valid() &&  ((start != heh) || (lap_counter == 0 )));
+        }
+        inline static void init(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            if (heh.is_valid() && !GenericCirculator_DereferenciabilityCheck::isDereferenciable(mesh, heh) && lap_counter == 0 )
+                increment(mesh, heh, start, lap_counter);
+        };
+        inline static void increment(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            do {
+                GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, true>::increment(mesh, heh, start, lap_counter);
+            } while (is_valid(heh, start, lap_counter) && !GenericCirculator_DereferenciabilityCheck::isDereferenciable(mesh, heh));
+        }
+        inline static void decrement(const Mesh *mesh, typename Mesh::HalfedgeHandle &heh, typename Mesh::HalfedgeHandle &start, int &lap_counter) {
+            do {
+                GenericCirculator_CenterEntityFnsT<Mesh, CenterEntityHandle, true>::decrement(mesh, heh, start, lap_counter);
+            } while (is_valid(heh, start, lap_counter) && !GenericCirculator_DereferenciabilityCheck::isDereferenciable(mesh, heh));
+        }
 };
 
+template<class Mesh, class CenterEntityHandle, class ValueHandle,
+        ValueHandle (GenericCirculatorBaseT<Mesh>::*Handle2Value)() const>
+class GenericCirculatorT_DEPRECATED : protected GenericCirculatorBaseT<Mesh> {
+    public:
+        typedef std::ptrdiff_t difference_type;
+        typedef ValueHandle value_type;
+        typedef const value_type& reference;
+        typedef const value_type* pointer;
+        typedef std::bidirectional_iterator_tag iterator_category;
 
+        typedef typename GenericCirculatorBaseT<Mesh>::mesh_ptr mesh_ptr;
+        typedef typename GenericCirculatorBaseT<Mesh>::mesh_ref mesh_ref;
+        typedef GenericCirculator_ValueHandleFnsT_DEPRECATED<Mesh, CenterEntityHandle, ValueHandle> GenericCirculator_ValueHandleFns;
 
-//== CLASS DEFINITION =========================================================
+    public:
+        GenericCirculatorT_DEPRECATED() {}
+        GenericCirculatorT_DEPRECATED(mesh_ref mesh, CenterEntityHandle start, bool end = false) :
+            GenericCirculatorBaseT<Mesh>(mesh, mesh.halfedge_handle(start), end) {
 
-	      
-/** \class ConstFaceHalfedgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
+          GenericCirculator_ValueHandleFns::init(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+        }
+        GenericCirculatorT_DEPRECATED(mesh_ref mesh, HalfedgeHandle heh, bool end = false) :
+            GenericCirculatorBaseT<Mesh>(mesh, heh, end) {
 
-template <class Mesh>
-class ConstFaceHalfedgeIterT
-{
- public:
+          GenericCirculator_ValueHandleFns::init(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+        }
+        GenericCirculatorT_DEPRECATED(const GenericCirculatorT_DEPRECATED &rhs) : GenericCirculatorBaseT<Mesh>(rhs) {}
 
+        GenericCirculatorT_DEPRECATED& operator++() {
+            assert(this->mesh_);
+            GenericCirculator_ValueHandleFns::increment(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+            return *this;
+        }
+#ifndef NO_DECREMENT_DEPRECATED_WARNINGS
+#define DECREMENT_DEPRECATED_WARNINGS_TEXT "The current decrement operator has the unintended behavior that it stays\
+    valid when iterating below the start and will visit the first entity\
+    twice before getting invalid. Furthermore it gets valid again, if you\
+    increment at the end.\
+    When you are sure that you don't iterate below the start anywhere in\
+    your code or rely on this behaviour, you can disable this warning by\
+    setting the define NO_DECREMENT_DEPRECATED_WARNINGS at the command line (or enable it via the\
+    cmake flags).\
+    To be save, you can use the CW/CCW circulator definitions, which behave\
+    the same as the original ones, without the previously mentioned issues."
 
-  //--- Typedefs ---
+        DEPRECATED( DECREMENT_DEPRECATED_WARNINGS_TEXT )
+#endif // NO_DECREMENT_DEPRECATED_WARNINGS
+        GenericCirculatorT_DEPRECATED& operator--() {
+            assert(this->mesh_);
+            GenericCirculator_ValueHandleFns::decrement(this->mesh_, this->heh_, this->start_, this->lap_counter_);
+            return *this;
+        }
 
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
+        /// Post-increment
+        GenericCirculatorT_DEPRECATED operator++(int) {
+            assert(this->mesh_);
+            GenericCirculatorT_DEPRECATED cpy(*this);
+            ++(*this);
+            return cpy;
+        }
 
-  typedef typename Mesh::Halfedge           value_type;
-  typedef typename Mesh::HalfedgeHandle     value_handle;
+        /// Post-decrement
+#ifndef NO_DECREMENT_DEPRECATED_WARNINGS
+        DEPRECATED( DECREMENT_DEPRECATED_WARNINGS_TEXT )
+#undef DECREMENT_DEPRECATED_WARNINGS_TEXT
+#endif //NO_DECREMENT_DEPRECATED_WARNINGS
+        GenericCirculatorT_DEPRECATED operator--(int) {
+            assert(this->mesh_);
+            GenericCirculatorT_DEPRECATED cpy(*this);
+            --(*this);
+            return cpy;
+        }
 
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Halfedge&    reference;
-  typedef const typename Mesh::Halfedge*    pointer;
+        /// Standard dereferencing operator.
+        value_type operator*() const {
+#ifndef NDEBUG
+            assert(this->heh_.is_valid());
+            value_type res = (this->*Handle2Value)();
+            assert(res.is_valid());
+            return res;
 #else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Halfedge&          reference;
-  typedef typename Mesh::Halfedge*          pointer;
+            return (this->*Handle2Value)();
 #endif
+        }
 
+        /**
+         * @brief Pointer dereferentiation.
+         *
+         * This returns a pointer which points to a handle
+         * that loses its validity once this dereferentiation is
+         * invoked again. Thus, do not store the result of
+         * this operation.
+         */
+        pointer operator->() const {
+            pointer_deref_value = **this;
+            return &pointer_deref_value;
+        }
 
+        GenericCirculatorT_DEPRECATED &operator=(const GenericCirculatorT_DEPRECATED &rhs) {
+            GenericCirculatorBaseT<Mesh>::operator=(rhs);
+            return *this;
+        };
 
-  /// Default constructor
-  ConstFaceHalfedgeIterT() : mesh_(0), lap_counter_(false) {}
+        bool operator==(const GenericCirculatorT_DEPRECATED &rhs) const {
+            return GenericCirculatorBaseT<Mesh>::operator==(rhs);
+        }
 
+        bool operator!=(const GenericCirculatorT_DEPRECATED &rhs) const {
+            return GenericCirculatorBaseT<Mesh>::operator!=(rhs);
+        }
 
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  ConstFaceHalfedgeIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
+        bool is_valid() const {
+            return GenericCirculator_ValueHandleFns::is_valid(this->heh_,this->start_, this->lap_counter_);
+        }
 
+        DEPRECATED("current_halfedge_handle() is an implementation detail and should not be accessed from outside the iterator class.")
+        /**
+         * \deprecated
+         * current_halfedge_handle() is an implementation detail and should not
+         * be accessed from outside the iterator class.
+         */
+        const HalfedgeHandle &current_halfedge_handle() const {
+            return this->heh_;
+        }
 
-  /// Construct with mesh and start halfedge
-  ConstFaceHalfedgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
+        DEPRECATED("Do not use this error prone implicit cast. Compare to end-iterator or use is_valid(), instead.")
+        /**
+         * \deprecated
+         * Do not use this error prone implicit cast. Compare to the
+         * end-iterator or use is_valid() instead.
+         */
+        operator bool() const {
+            return is_valid();
+        }
 
+        /**
+         * \brief Return the handle of the current target.
+         * \deprecated
+         * This function clutters your code. Use dereferencing operators -> and * instead.
+         */
+        DEPRECATED("This function clutters your code. Use dereferencing operators -> and * instead.")
+        value_type handle() const {
+          return **this;
+        }
 
-  /// Copy constructor
-  ConstFaceHalfedgeIterT(const ConstFaceHalfedgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
+        /**
+         * \brief Cast to the handle of the current target.
+         * \deprecated
+         * Implicit casts of iterators are unsafe. Use dereferencing operators
+         * -> and * instead.
+         */
+        DEPRECATED("Implicit casts of iterators are unsafe. Use dereferencing operators -> and * instead.")
+        operator value_type() const {
+          return **this;
+        }
 
+        template<typename STREAM>
+        friend STREAM &operator<< (STREAM &s, const GenericCirculatorT_DEPRECATED &self) {
+            return s << self.mesh_ << ", " << self.start_.idx() << ", " << self.heh_.idx() << ", " << self.lap_counter_;
+        }
 
-  /// Assignment operator
-  ConstFaceHalfedgeIterT& operator=(const ConstFaceHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstFaceHalfedgeIterT(const FaceHalfedgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  ConstFaceHalfedgeIterT& operator=(const FaceHalfedgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceHalfedgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstFaceHalfedgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstFaceHalfedgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstFaceHalfedgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->next_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstFaceHalfedgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->prev_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::HalfedgeHandle handle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::HalfedgeHandle() const {
-    assert(mesh_);
-    return heh_; 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
+    private:
+        mutable value_type pointer_deref_value;
 };
 
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class FaceEdgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class FaceEdgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Edge               value_type;
-  typedef typename Mesh::EdgeHandle         value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Edge&        reference;
-  typedef const typename Mesh::Edge*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Edge&              reference;
-  typedef typename Mesh::Edge*              pointer;
-#endif
-
-
-
-  /// Default constructor
-  FaceEdgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  FaceEdgeIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  FaceEdgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  FaceEdgeIterT(const FaceEdgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  FaceEdgeIterT& operator=(const FaceEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  FaceEdgeIterT(const FaceEdgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  FaceEdgeIterT& operator=(const FaceEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceEdgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const FaceEdgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const FaceEdgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  FaceEdgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->next_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  FaceEdgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->prev_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::EdgeHandle handle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::EdgeHandle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
-};
-
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class ConstFaceEdgeIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class ConstFaceEdgeIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Edge               value_type;
-  typedef typename Mesh::EdgeHandle         value_handle;
-
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Edge&        reference;
-  typedef const typename Mesh::Edge*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Edge&              reference;
-  typedef typename Mesh::Edge*              pointer;
-#endif
-
-
-
-  /// Default constructor
-  ConstFaceEdgeIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  ConstFaceEdgeIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstFaceEdgeIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  {  ; }
-
-
-  /// Copy constructor
-  ConstFaceEdgeIterT(const ConstFaceEdgeIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// Assignment operator
-  ConstFaceEdgeIterT& operator=(const ConstFaceEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstFaceEdgeIterT(const FaceEdgeIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  {  ; }
-
-
-  /// assign from non-const circulator
-  ConstFaceEdgeIterT& operator=(const FaceEdgeIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceEdgeIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstFaceEdgeIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstFaceEdgeIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstFaceEdgeIterT& operator++() { 
-    assert(mesh_);
-    heh_=mesh_->next_halfedge_handle(heh_);
-    if(heh_ == start_) lap_counter_++;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstFaceEdgeIterT& operator--() { 
-    assert(mesh_);
-    if(heh_ == start_) lap_counter_--;
-    heh_=mesh_->prev_halfedge_handle(heh_);
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::EdgeHandle handle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::EdgeHandle() const {
-    assert(mesh_);
-    return mesh_->edge_handle(heh_); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
-};
-
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class FaceFaceIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class FaceFaceIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Face               value_type;
-  typedef typename Mesh::FaceHandle         value_handle;
-
-#if 0
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Face&        reference;
-  typedef const typename Mesh::Face*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Face&              reference;
-  typedef typename Mesh::Face*              pointer;
-#endif
-
-
-
-  /// Default constructor
-  FaceFaceIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  FaceFaceIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Construct with mesh and start halfedge
-  FaceFaceIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Copy constructor
-  FaceFaceIterT(const FaceFaceIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Assignment operator
-  FaceFaceIterT& operator=(const FaceFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 0
-  /// construct from non-const circulator type
-  FaceFaceIterT(const FaceFaceIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// assign from non-const circulator
-  FaceFaceIterT& operator=(const FaceFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceFaceIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const FaceFaceIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const FaceFaceIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  FaceFaceIterT& operator++() { 
-    assert(mesh_);
-    do { heh_=mesh_->next_halfedge_handle(heh_); if(heh_ == start_) lap_counter_++; } while ((*this) && (!handle().is_valid()));
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  FaceFaceIterT& operator--() { 
-    assert(mesh_);
-    do { if(heh_ == start_) lap_counter_--; heh_=mesh_->prev_halfedge_handle(heh_); } while ((*this) && (!handle().is_valid()));
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::FaceHandle handle() const {
-    assert(mesh_);
-    return mesh_->face_handle(mesh_->opposite_halfedge_handle(heh_)); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::FaceHandle() const {
-    assert(mesh_);
-    return mesh_->face_handle(mesh_->opposite_halfedge_handle(heh_)); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const {
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
-};
-
-
-
-//== CLASS DEFINITION =========================================================
-
-	      
-/** \class ConstFaceFaceIterT CirculatorsT.hh <OpenMesh/Mesh/Iterators/CirculatorsT.hh>
-    Circulator.
-*/
-
-template <class Mesh>
-class ConstFaceFaceIterT
-{
- public:
-
-
-  //--- Typedefs ---
-
-  typedef typename Mesh::HalfedgeHandle     HalfedgeHandle;
-
-  typedef typename Mesh::Face               value_type;
-  typedef typename Mesh::FaceHandle         value_handle;
-
-#if 1
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef const Mesh&                       mesh_ref;
-  typedef const Mesh*                       mesh_ptr;
-  typedef const typename Mesh::Face&        reference;
-  typedef const typename Mesh::Face*        pointer;
-#else
-  typedef std::bidirectional_iterator_tag   iterator_category;
-  typedef std::ptrdiff_t                    difference_type;
-  typedef Mesh&                             mesh_ref;
-  typedef Mesh*                             mesh_ptr;
-  typedef typename Mesh::Face&              reference;
-  typedef typename Mesh::Face*              pointer;
-#endif
-
-
-
-  /// Default constructor
-  ConstFaceFaceIterT() : mesh_(0), lap_counter_(false) {}
-
-
-  /// Construct with mesh and a typename Mesh::FaceHandle
-  ConstFaceFaceIterT(mesh_ref _mesh, typename Mesh::FaceHandle _start, bool _end = false) :
-    mesh_(&_mesh), 
-    start_(_mesh.halfedge_handle(_start)),
-    heh_(start_),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Construct with mesh and start halfedge
-  ConstFaceFaceIterT(mesh_ref _mesh, HalfedgeHandle _heh, bool _end = false) :
-    mesh_(&_mesh),
-    start_(_heh),
-    heh_(_heh),
-    lap_counter_(_end)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Copy constructor
-  ConstFaceFaceIterT(const ConstFaceFaceIterT& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// Assignment operator
-  ConstFaceFaceIterT& operator=(const ConstFaceFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-
-
-#if 1
-  /// construct from non-const circulator type
-  ConstFaceFaceIterT(const FaceFaceIterT<Mesh>& _rhs) :
-    mesh_(_rhs.mesh_),
-    start_(_rhs.start_),
-    heh_(_rhs.heh_),
-    lap_counter_(_rhs.lap_counter_)
-  { if (heh_.is_valid() && !handle().is_valid()) operator++();; }
-
-
-  /// assign from non-const circulator
-  ConstFaceFaceIterT& operator=(const FaceFaceIterT<Mesh>& _rhs)
-  {
-    mesh_   = _rhs.mesh_;
-    start_  = _rhs.start_;
-    heh_    = _rhs.heh_;
-    lap_counter_ = _rhs.lap_counter_;
-    return *this;
-  }
-#else
-  friend class ConstFaceFaceIterT<Mesh>;
-#endif  
-
-
-  /// Equal ?
-  bool operator==(const ConstFaceFaceIterT& _rhs) const {
-    return ((mesh_   == _rhs.mesh_) &&
-	    (start_  == _rhs.start_) &&
-	    (heh_    == _rhs.heh_) &&
-	    (lap_counter_ == _rhs.lap_counter_));
-  }
-
-
-  /// Not equal ?
-  bool operator!=(const ConstFaceFaceIterT& _rhs) const {
-    return !operator==(_rhs);
-  }
-
-
-  /// Pre-Increment (next cw target)
-  ConstFaceFaceIterT& operator++() { 
-    assert(mesh_);
-    do { heh_=mesh_->next_halfedge_handle(heh_); if(heh_ == start_) lap_counter_++; } while ((*this) && (!handle().is_valid()));;
-    return *this;
-  }
-
-
-  /// Pre-Decrement (next ccw target)
-  ConstFaceFaceIterT& operator--() { 
-    assert(mesh_);
-    do { if(heh_ == start_) lap_counter_--; heh_=mesh_->prev_halfedge_handle(heh_); } while ((*this) && (!handle().is_valid()));;
-    return *this;
-  }
-
-
-  /** Get the current halfedge. There are \c Vertex*Iters and \c
-      Face*Iters.  For both the current state is defined by the
-      current halfedge. This is what this method returns. 
-  */
-  HalfedgeHandle current_halfedge_handle() const {
-    return heh_;
-  }
-
-
-  /// Return the handle of the current target.
-  typename Mesh::FaceHandle handle() const {
-    assert(mesh_);
-    return mesh_->face_handle(mesh_->opposite_halfedge_handle(heh_)); 
-  }
-
-
-  /// Cast to the handle of the current target.
-  operator typename Mesh::FaceHandle() const {
-    assert(mesh_);
-    return mesh_->face_handle(mesh_->opposite_halfedge_handle(heh_)); 
-  }
-    
-
-  ///  Return a reference to the current target.
-  reference operator*() const { 
-    assert(mesh_);
-    return mesh_->deref(handle());
-  }
-
-
-  /// Return a pointer to the current target.
-  pointer operator->() const { 
-    assert(mesh_);
-    return &mesh_->deref(handle());
-  }
-
-
-  /** Returns whether the circulator is still valid.
-      After one complete round around a vertex/face the circulator becomes
-      invalid, i.e. this function will return \c false. Nevertheless you
-      can continue circulating. This method just tells you whether you
-      have completed the first round.
-   */
-  operator bool() const { 
-    return heh_.is_valid() && ((start_ != heh_) || (lap_counter_ == 0));
-  }
-
-
-protected:
-
-  mesh_ptr         mesh_;
-  HalfedgeHandle   start_, heh_;
-  int              lap_counter_;
-};
-
-
-
-//=============================================================================
 } // namespace Iterators
 } // namespace OpenMesh
-//=============================================================================
+
 #endif
-//=============================================================================

@@ -1,36 +1,43 @@
-/*===========================================================================*\
+/* ========================================================================= *
  *                                                                           *
  *                               OpenMesh                                    *
- *      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
- *                           www.openmesh.org                                *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
  *                                                                           *
- *---------------------------------------------------------------------------* 
- *  This file is part of OpenMesh.                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
  *                                                                           *
- *  OpenMesh is free software: you can redistribute it and/or modify         * 
- *  it under the terms of the GNU Lesser General Public License as           *
- *  published by the Free Software Foundation, either version 3 of           *
- *  the License, or (at your option) any later version with the              *
- *  following exceptions:                                                    *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
  *                                                                           *
- *  If other files instantiate templates or use macros                       *
- *  or inline functions from this file, or you compile this file and         *
- *  link it with other files to produce an executable, this file does        *
- *  not by itself cause the resulting executable to be covered by the        *
- *  GNU Lesser General Public License. This exception does not however       *
- *  invalidate any other reasons why the executable file might be            *
- *  covered by the GNU Lesser General Public License.                        *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
  *                                                                           *
- *  OpenMesh is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU Lesser General Public License for more details.                      *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
  *                                                                           *
- *  You should have received a copy of the GNU LesserGeneral Public          *
- *  License along with OpenMesh.  If not,                                    *
- *  see <http://www.gnu.org/licenses/>.                                      *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
  *                                                                           *
-\*===========================================================================*/ 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*===========================================================================*\
  *                                                                           *             
@@ -113,6 +120,8 @@ public: // inherited from BaseProperty
   virtual void push_back()        { data_.push_back(T()); }
   virtual void swap(size_t _i0, size_t _i1)
   { std::swap(data_[_i0], data_[_i1]); }
+  virtual void copy(size_t _i0, size_t _i1)
+  { data_[_i1] = data_[_i0]; }
 
 public:
 
@@ -133,7 +142,7 @@ public:
   {
     if (element_size() != IO::UnknownSize)
       return this->BaseProperty::size_of(n_elements());
-    return std::accumulate(data_.begin(), data_.end(), 0, plus());
+    return std::accumulate(data_.begin(), data_.end(), size_t(0), plus());
   }
 
   virtual size_t size_of(size_t _n_elem) const
@@ -172,7 +181,11 @@ public: // data access interface
 
   /// Get reference to property vector (be careful, improper usage, e.g. resizing, may crash OpenMesh!!!)
   vector_type& data_vector() {
+    return data_;
+  }
 
+  /// Const access to property vector
+  const vector_type& data_vector() const {
     return data_;
   }
 
@@ -234,6 +247,8 @@ public: // inherited from BaseProperty
   virtual void push_back()        { data_.push_back(bool()); }
   virtual void swap(size_t _i0, size_t _i1)
   { bool t(data_[_i0]); data_[_i0]=data_[_i1]; data_[_i1]=t; }
+  virtual void copy(size_t _i0, size_t _i1)
+  { data_[_i1] = data_[_i0]; }
 
 public:
 
@@ -263,14 +278,14 @@ public:
 
     for (bidx=idx=0; idx < N; ++idx, bidx+=8)
     {
-      bits = !!data_[bidx]
-        | (!!data_[bidx+1] << 1)
-        | (!!data_[bidx+2] << 2)
-        | (!!data_[bidx+3] << 3)
-        | (!!data_[bidx+4] << 4)
-        | (!!data_[bidx+5] << 5)
-        | (!!data_[bidx+6] << 6)
-        | (!!data_[bidx+7] << 7);
+      bits = static_cast<unsigned char>(data_[bidx])
+        | (static_cast<unsigned char>(data_[bidx+1]) << 1)
+        | (static_cast<unsigned char>(data_[bidx+2]) << 2)
+        | (static_cast<unsigned char>(data_[bidx+3]) << 3)
+        | (static_cast<unsigned char>(data_[bidx+4]) << 4)
+        | (static_cast<unsigned char>(data_[bidx+5]) << 5)
+        | (static_cast<unsigned char>(data_[bidx+6]) << 6)
+        | (static_cast<unsigned char>(data_[bidx+7]) << 7);
       _ostr << bits;
     }
     bytes = N;
@@ -279,12 +294,10 @@ public:
     {
       bits = 0;
       for (idx=0; idx < R; ++idx)
-        bits |= !!data_[bidx+idx] << idx;
+        bits |= static_cast<unsigned char>(data_[bidx+idx]) << idx;
       _ostr << bits;
       ++bytes;
     }
-
-    std::cout << std::endl;
 
     assert( bytes == size_of() );
 
@@ -305,14 +318,14 @@ public:
     for (bidx=idx=0; idx < N; ++idx, bidx+=8)
     {
       _istr >> bits;
-      data_[bidx+0] = !!(bits & 0x01);
-      data_[bidx+1] = !!(bits & 0x02);
-      data_[bidx+2] = !!(bits & 0x04);
-      data_[bidx+3] = !!(bits & 0x08);
-      data_[bidx+4] = !!(bits & 0x10);
-      data_[bidx+5] = !!(bits & 0x20);
-      data_[bidx+6] = !!(bits & 0x40);
-      data_[bidx+7] = !!(bits & 0x80);
+      data_[bidx+0] = (bits & 0x01) != 0;
+      data_[bidx+1] = (bits & 0x02) != 0;
+      data_[bidx+2] = (bits & 0x04) != 0;
+      data_[bidx+3] = (bits & 0x08) != 0;
+      data_[bidx+4] = (bits & 0x10) != 0;
+      data_[bidx+5] = (bits & 0x20) != 0;
+      data_[bidx+6] = (bits & 0x40) != 0;
+      data_[bidx+7] = (bits & 0x80) != 0;
     }
     bytes = N;
 
@@ -320,11 +333,9 @@ public:
     {
       _istr >> bits;
       for (idx=0; idx < R; ++idx)
-        data_[bidx+idx] = !!(bits & (1<<idx));
+        data_[bidx+idx] = (bits & (1<<idx)) != 0;
       ++bytes;
     }
-
-    std::cout << std::endl;
 
     return bytes;
   }
@@ -334,7 +345,11 @@ public:
 
   /// Get reference to property vector (be careful, improper usage, e.g. resizing, may crash OpenMesh!!!)
   vector_type& data_vector() {
+    return data_;
+  }
 
+  /// Const access to property vector
+  const vector_type& data_vector() const {
     return data_;
   }
 
@@ -397,6 +412,8 @@ public: // inherited from BaseProperty
   virtual void swap(size_t _i0, size_t _i1) {
     std::swap(data_[_i0], data_[_i1]);
   }
+  virtual void copy(size_t _i0, size_t _i1)
+  { data_[_i1] = data_[_i0]; }
 
 public:
 
@@ -443,8 +460,6 @@ public:
     PropertyT<value_type>* p = new PropertyT<value_type>( *this );
     return p;
   }
-
-
 private:
 
   vector_type data_;

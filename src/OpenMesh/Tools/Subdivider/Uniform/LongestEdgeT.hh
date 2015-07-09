@@ -1,36 +1,43 @@
-/*===========================================================================*\
-*                                                                           *
-*                               OpenMesh                                    *
-*      Copyright (C) 2001-2011 by Computer Graphics Group, RWTH Aachen      *
-*                           www.openmesh.org                                *
-*                                                                           *
-*---------------------------------------------------------------------------* 
-*  This file is part of OpenMesh.                                           *
-*                                                                           *
-*  OpenMesh is free software: you can redistribute it and/or modify         * 
-*  it under the terms of the GNU Lesser General Public License as           *
-*  published by the Free Software Foundation, either version 3 of           *
-*  the License, or (at your option) any later version with the              *
-*  following exceptions:                                                    *
-*                                                                           *
-*  If other files instantiate templates or use macros                       *
-*  or inline functions from this file, or you compile this file and         *
-*  link it with other files to produce an executable, this file does        *
-*  not by itself cause the resulting executable to be covered by the        *
-*  GNU Lesser General Public License. This exception does not however       *
-*  invalidate any other reasons why the executable file might be            *
-*  covered by the GNU Lesser General Public License.                        *
-*                                                                           *
-*  OpenMesh is distributed in the hope that it will be useful,              *
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
-*  GNU Lesser General Public License for more details.                      *
-*                                                                           *
-*  You should have received a copy of the GNU LesserGeneral Public          *
-*  License along with OpenMesh.  If not,                                    *
-*  see <http://www.gnu.org/licenses/>.                                      *
-*                                                                           *
-\*==========================================================================*/ 
+/* ========================================================================= *
+ *                                                                           *
+ *                               OpenMesh                                    *
+ *           Copyright (c) 2001-2015, RWTH-Aachen University                 *
+ *           Department of Computer Graphics and Multimedia                  *
+ *                          All rights reserved.                             *
+ *                            www.openmesh.org                               *
+ *                                                                           *
+ *---------------------------------------------------------------------------*
+ * This file is part of OpenMesh.                                            *
+ *---------------------------------------------------------------------------*
+ *                                                                           *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
+ *                                                                           *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ *    this list of conditions and the following disclaimer.                  *
+ *                                                                           *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ *    notice, this list of conditions and the following disclaimer in the    *
+ *    documentation and/or other materials provided with the distribution.   *
+ *                                                                           *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ *    contributors may be used to endorse or promote products derived from   *
+ *    this software without specific prior written permission.               *
+ *                                                                           *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED *
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A           *
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER *
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  *
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,       *
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR        *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * ========================================================================= */
 
 /*==========================================================================*\
 *                                                                           *             
@@ -156,14 +163,14 @@ protected:
     // First element should be longest edge
     typename mesh_t::EdgeIter edgesEnd = _m.edges_end();
     for ( typename mesh_t::EdgeIter eit  = _m.edges_begin(); eit != edgesEnd; ++eit) {
-      const typename MeshType::Point to   = _m.point(_m.to_vertex_handle(_m.halfedge_handle(eit,0)));
-      const typename MeshType::Point from = _m.point(_m.from_vertex_handle(_m.halfedge_handle(eit,0)));
+      const typename MeshType::Point to   = _m.point(_m.to_vertex_handle(_m.halfedge_handle(*eit,0)));
+      const typename MeshType::Point from = _m.point(_m.from_vertex_handle(_m.halfedge_handle(*eit,0)));
 
       real_t length = (to - from).sqrnorm();
 
       // Only push the edges that need to be split
       if ( length > max_edge_length_squared_ )
-        queue.push( queueElement(eit.handle(),length) );
+        queue.push( queueElement(*eit,length) );
     }
 
     bool stop = false;
@@ -177,15 +184,15 @@ protected:
       } else {
         const typename MeshType::Point to   = _m.point(_m.to_vertex_handle(_m.halfedge_handle(a.first,0)));
         const typename MeshType::Point from = _m.point(_m.from_vertex_handle(_m.halfedge_handle(a.first,0)));
-        const typename MeshType::Point midpoint = 0.5 * ( to + from );
+        const typename MeshType::Point midpoint = static_cast<typename MeshType::Point::value_type>(0.5) * (to + from);
 
         const typename MeshType::VertexHandle newVertex = _m.add_vertex(midpoint);
         _m.split(a.first,newVertex);
 
-        for ( typename MeshType::VertexOHalfedgeIter voh_it(_m,newVertex); voh_it; ++voh_it) {
-          typename MeshType::EdgeHandle eh = _m.edge_handle(voh_it.handle());
-          const typename MeshType::Point to   = _m.point(_m.to_vertex_handle(voh_it));
-          const typename MeshType::Point from = _m.point(_m.from_vertex_handle(voh_it));
+        for ( typename MeshType::VertexOHalfedgeIter voh_it(_m,newVertex); voh_it.is_valid(); ++voh_it) {
+          typename MeshType::EdgeHandle eh = _m.edge_handle(*voh_it);
+          const typename MeshType::Point to   = _m.point(_m.to_vertex_handle(*voh_it));
+          const typename MeshType::Point from = _m.point(_m.from_vertex_handle(*voh_it));
           real_t length = (to - from).sqrnorm();
 
           // Only push the edges that need to be split
