@@ -105,7 +105,7 @@ echo "Running Python unittests Release version "
 echo "======================================================================"
 echo -e "${NC}"
 
-if [ "$LANGUAGE" == "C++11"  ] || [ "$COMPILER" == "gcc" ] ; then
+if [ "$COMPILER" == "gcc" ] ; then
 
   # Execute Python unittests
   cd Python-Unittests
@@ -188,7 +188,7 @@ echo "Running Python unittests Debug version "
 echo "======================================================================"
 echo -e "${NC}"
 
-if [ "$LANGUAGE" == "C++11"  ] || [ "$COMPILER" == "gcc" ] ; then
+if [ "$COMPILER" == "gcc" ] ; then
 
   # Execute Python unittests
   cd Python-Unittests
