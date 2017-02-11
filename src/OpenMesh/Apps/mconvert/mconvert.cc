@@ -220,7 +220,7 @@ int main(int argc, char *argv[] )
 
 
   // ---------------------------------------- some information about input
-  std::cout << (ropt.check(OpenMesh::IO::Options::Binary) 
+  std::cout << (ropt.check_flag(OpenMesh::IO::Options::Binary) 
                 ? "  source is binary\n"
                 : "  source is ascii\n");   
 
@@ -337,8 +337,8 @@ int main(int argc, char *argv[] )
   }
 
   // ---------------------------------------- color vertices feature
-  if (  opt.check( OpenMesh::IO::Options::VertexColor ) &&
-        !ropt.check( OpenMesh::IO::Options::VertexColor ) )
+  if (  opt.check_flag( OpenMesh::IO::Options::VertexColor ) &&
+        !ropt.check_flag( OpenMesh::IO::Options::VertexColor ) )
   {
     std::cout << "Color vertices" << std::endl;
 
@@ -362,8 +362,8 @@ int main(int argc, char *argv[] )
   }
 
   // ---------------------------------------- color faces feature
-  if (  opt.check( OpenMesh::IO::Options::FaceColor ) &&
-        !ropt.check( OpenMesh::IO::Options::FaceColor ) )
+  if (  opt.check_flag( OpenMesh::IO::Options::FaceColor ) &&
+        !ropt.check_flag( OpenMesh::IO::Options::FaceColor ) )
   {
     std::cout << "Color faces" << std::endl;
 
@@ -402,7 +402,7 @@ int main(int argc, char *argv[] )
     }
        
     // -------------------------------------- write output and some info
-    if ( opt.check(OpenMesh::IO::Options::Binary) )
+    if ( opt.check_flag(OpenMesh::IO::Options::Binary) )
     {          
       std::cout << "  "
                 << OpenMesh::IO::binary_size(mesh, ofname, opt)

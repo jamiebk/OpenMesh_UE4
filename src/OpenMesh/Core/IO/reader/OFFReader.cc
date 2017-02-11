@@ -145,7 +145,7 @@ _OFFReader_::read(std::istream& _in, BaseImporter& _bi, Options& _opt )
    }
 
    // filter relevant options for reading
-   bool swap = _opt.check( Options::Swap );
+   bool swap = _opt.check_flag( Options::Swap );
 
 
    userOptions_ = _opt;

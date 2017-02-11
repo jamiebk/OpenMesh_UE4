@@ -136,7 +136,7 @@ bool _PLYReader_::read(std::istream& _in, BaseImporter& _bi, Options& _opt) {
     }
 
     // filter relevant options for reading
-    bool swap = _opt.check(Options::Swap);
+    bool swap = _opt.check_flag(Options::Swap);
 
     userOptions_ = _opt;
 
@@ -161,7 +161,7 @@ bool _PLYReader_::read(std::istream& _in, BaseImporter& _bi, Options& _opt) {
     if (options_.color_is_float()) {
         _opt += Options::ColorFloat;
     }
-    if (options_.check(Options::Custom) && userOptions_.check(Options::Custom)) {
+    if (options_.check_flag(Options::Custom) && userOptions_.check_flag(Options::Custom)) {
         _opt += Options::Custom;
     }
 
@@ -397,7 +397,7 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi, const Options
 							_in >> c[3];
 						break;
 					case CUSTOM_PROP:
-						if (_opt.check(Options::Custom))
+                        if (_opt.check_flag(Options::Custom))
 							readCustomProperty<false>(_in, _bi, vh, prop.name, prop.value, prop.listIndexType);
 						else
 							_in >> trash;
@@ -454,7 +454,7 @@ bool _PLYReader_::read_ascii(std::istream& _in, BaseImporter& _bi, const Options
 						break;
 
 					case CUSTOM_PROP:
-						if (_opt.check(Options::Custom) && fh.is_valid())
+                        if (_opt.check_flag(Options::Custom) && fh.is_valid())
 							readCustomProperty<false>(_in, _bi, fh, prop.name, prop.value, prop.listIndexType);
 						else
 							_in >> trash;
@@ -620,7 +620,7 @@ bool _PLYReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap
 
 						break;
 					case CUSTOM_PROP:
-						if (_opt.check(Options::Custom))
+                        if (_opt.check_flag(Options::Custom))
 							readCustomProperty<true>(_in, _bi, vh, prop.name, prop.value, prop.listIndexType);
 						else
 							consume_input(_in, scalar_size_[prop.value]);
@@ -681,7 +681,7 @@ bool _PLYReader_::read_binary(std::istream& _in, BaseImporter& _bi, bool /*_swap
 						break;
 
 					case CUSTOM_PROP:
-						if (_opt.check(Options::Custom) && fh.is_valid())
+                        if (_opt.check_flag(Options::Custom) && fh.is_valid())
 							readCustomProperty<true>(_in, _bi, fh, prop.name, prop.value, prop.listIndexType);
 						else
 							consume_input(_in, scalar_size_[prop.value]);
@@ -738,7 +738,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, float& _value) c
     case ValueTypeFLOAT32:
     case ValueTypeFLOAT:
         float32_t tmp;
-        restore(_in, tmp, options_.check(Options::MSB));
+        restore(_in, tmp, options_.check_flag(Options::MSB));
         _value = tmp;
         break;
     default:
@@ -761,7 +761,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, double& _value) 
         case ValueTypeDOUBLE:
 
             float64_t tmp;
-            restore(_in, tmp, options_.check(Options::MSB));
+            restore(_in, tmp, options_.check_flag(Options::MSB));
             _value = tmp;
 
             break;
@@ -822,7 +822,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, unsigned int& _v
 
         case ValueTypeUINT32:
 
-            restore(_in, tmp_uint32_t, options_.check(Options::MSB));
+            restore(_in, tmp_uint32_t, options_.check_flag(Options::MSB));
             _value = tmp_uint32_t;
 
         break;
@@ -831,7 +831,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, unsigned int& _v
 
         case ValueTypeUINT16:
 
-            restore(_in, tmp_uint16_t, options_.check(Options::MSB));
+            restore(_in, tmp_uint16_t, options_.check_flag(Options::MSB));
             _value = tmp_uint16_t;
 
             break;
@@ -840,7 +840,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, unsigned int& _v
 
         case ValueTypeUINT8:
 
-            restore(_in, tmp_uchar, options_.check(Options::MSB));
+            restore(_in, tmp_uchar, options_.check_flag(Options::MSB));
             _value = tmp_uchar;
 
             break;
@@ -870,7 +870,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, int& _value) con
 
         case ValueTypeINT32:
 
-            restore(_in, tmp_int32_t, options_.check(Options::MSB));
+            restore(_in, tmp_int32_t, options_.check_flag(Options::MSB));
             _value = tmp_int32_t;
 
             break;
@@ -879,7 +879,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, int& _value) con
 
         case ValueTypeINT16:
 
-            restore(_in, tmp_int16_t, options_.check(Options::MSB));
+            restore(_in, tmp_int16_t, options_.check_flag(Options::MSB));
             _value = tmp_int16_t;
 
             break;
@@ -888,7 +888,7 @@ void _PLYReader_::readValue(ValueType _type, std::istream& _in, int& _value) con
 
         case ValueTypeINT8:
 
-            restore(_in, tmp_char, options_.check(Options::MSB));
+            restore(_in, tmp_char, options_.check_flag(Options::MSB));
             _value = tmp_char;
 
             break;
@@ -919,7 +919,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, int& _value) c
 
         case ValueTypeINT32:
 
-            restore(_in, tmp_int32_t, options_.check(Options::MSB));
+            restore(_in, tmp_int32_t, options_.check_flag(Options::MSB));
             _value = tmp_int32_t;
 
             break;
@@ -928,7 +928,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, int& _value) c
 
         case ValueTypeUINT32:
 
-            restore(_in, tmp_uint32_t, options_.check(Options::MSB));
+            restore(_in, tmp_uint32_t, options_.check_flag(Options::MSB));
             _value = tmp_uint32_t;
 
             break;
@@ -937,7 +937,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, int& _value) c
 
         case ValueTypeINT8:
 
-            restore(_in, tmp_char, options_.check(Options::MSB));
+            restore(_in, tmp_char, options_.check_flag(Options::MSB));
             _value = tmp_char;
 
             break;
@@ -946,7 +946,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, int& _value) c
 
         case ValueTypeUINT8:
 
-            restore(_in, tmp_uchar, options_.check(Options::MSB));
+            restore(_in, tmp_uchar, options_.check_flag(Options::MSB));
             _value = tmp_uchar;
 
             break;
@@ -977,7 +977,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, unsigned int& 
 
         case ValueTypeUINT32:
 
-            restore(_in, tmp_uint32_t, options_.check(Options::MSB));
+            restore(_in, tmp_uint32_t, options_.check_flag(Options::MSB));
             _value = tmp_uint32_t;
 
             break;
@@ -986,7 +986,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, unsigned int& 
 
         case ValueTypeINT32:
 
-            restore(_in, tmp_int32_t, options_.check(Options::MSB));
+            restore(_in, tmp_int32_t, options_.check_flag(Options::MSB));
             _value = tmp_int32_t;
 
             break;
@@ -995,7 +995,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, unsigned int& 
 
         case ValueTypeUINT8:
 
-            restore(_in, tmp_uchar, options_.check(Options::MSB));
+            restore(_in, tmp_uchar, options_.check_flag(Options::MSB));
             _value = tmp_uchar;
 
             break;
@@ -1004,7 +1004,7 @@ void _PLYReader_::readInteger(ValueType _type, std::istream& _in, unsigned int& 
 
         case ValueTypeINT8:
 
-            restore(_in, tmp_char, options_.check(Options::MSB));
+            restore(_in, tmp_char, options_.check_flag(Options::MSB));
             _value = tmp_char;
 
             break;

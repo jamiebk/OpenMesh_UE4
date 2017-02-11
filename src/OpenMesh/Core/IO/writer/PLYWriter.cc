@@ -101,7 +101,7 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt, std::stream
 {
 
   // open file
-  std::ofstream out(_filename.c_str(), (_opt.check(Options::Binary) ? std::ios_base::binary | std::ios_base::out
+  std::ofstream out(_filename.c_str(), (_opt.check_flag(Options::Binary) ? std::ios_base::binary | std::ios_base::out
                                                          : std::ios_base::out) );
   return write(out, _be, _opt, _precision);
 }
@@ -114,12 +114,12 @@ _PLYWriter_::
 write(std::ostream& _os, BaseExporter& _be, Options _opt, std::streamsize _precision) const
 {
   // check exporter features
-  if ( !check( _be, _opt ) )
+  if ( !check_flag( _be, _opt ) )
     return false;
 
 
   // check writer features
-  if ( _opt.check(Options::FaceNormal) ) {
+  if ( _opt.check_flag(Options::FaceNormal) ) {
     // Face normals are not supported
     // Uncheck these options and output message that
     // they are not written out even though they were requested
@@ -127,7 +127,7 @@ write(std::ostream& _os, BaseExporter& _be, Options _opt, std::streamsize _preci
     omerr() << "[PLYWriter] : Warning: Face normals are not supported and thus not exported! " << std::endl;
   }
 
-  if ( _opt.check(Options::FaceColor) ) {
+  if ( _opt.check_flag(Options::FaceColor) ) {
     // Face normals are not supported
     // Uncheck these options and output message that
     // they are not written out even though they were requested
@@ -145,11 +145,11 @@ write(std::ostream& _os, BaseExporter& _be, Options _opt, std::streamsize _preci
     return false;
   }
 
-  if (!_opt.check(Options::Binary))
+  if (!_opt.check_flag(Options::Binary))
     _os.precision(_precision);
 
   // write to file
-  bool result = (_opt.check(Options::Binary) ?
+  bool result = (_opt.check_flag(Options::Binary) ?
      write_binary(_os, _be, _opt) :
      write_ascii(_os, _be, _opt));
 
@@ -270,7 +270,7 @@ void _PLYWriter_::write_header(std::ostream& _out, BaseExporter& _be, Options& _
 
   if (_opt.is_binary()) {
     _out << "format ";
-    if ( options_.check(Options::MSB) )
+    if ( options_.check_flag(Options::MSB) )
       _out << "binary_big_endian ";
     else
       _out << "binary_little_endian ";
@@ -433,12 +433,12 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, int value) con
     case ValueTypeINT:
     case ValueTypeINT32:
       tmp32 = value;
-      store(_out, tmp32, options_.check(Options::MSB) );
+      store(_out, tmp32, options_.check_flag(Options::MSB) );
       break;
 //     case ValueTypeUINT8:
 default :
       tmp8 = value;
-      store(_out, tmp8, options_.check(Options::MSB) );
+      store(_out, tmp8, options_.check_flag(Options::MSB) );
       break;
 //     default :
 //       std::cerr << "unsupported conversion type to int: " << _type << std::endl;
@@ -455,12 +455,12 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, unsigned int v
     case ValueTypeINT:
     case ValueTypeINT32:
       tmp32 = value;
-      store(_out, tmp32, options_.check(Options::MSB) );
+      store(_out, tmp32, options_.check_flag(Options::MSB) );
       break;
 //     case ValueTypeUINT8:
 default :
       tmp8 = value;
-      store(_out, tmp8, options_.check(Options::MSB) );
+      store(_out, tmp8, options_.check_flag(Options::MSB) );
       break;
 //     default :
 //       std::cerr << "unsupported conversion type to int: " << _type << std::endl;
@@ -476,7 +476,7 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, float value) c
     case ValueTypeFLOAT32:
     case ValueTypeFLOAT:
       tmp = value;
-      store( _out , tmp, options_.check(Options::MSB) );
+      store( _out , tmp, options_.check_flag(Options::MSB) );
       break;
     default :
       std::cerr << "unsupported conversion type to float: " << _type << std::endl;
@@ -491,7 +491,7 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, double value) 
   switch (_type) {
     case ValueTypeDOUBLE:
       tmp = value;
-      store( _out , tmp, options_.check(Options::MSB) );
+      store( _out , tmp, options_.check_flag(Options::MSB) );
       break;
     default :
       std::cerr << "unsupported conversion type to float: " << _type << std::endl;
@@ -506,7 +506,7 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, signed char va
   switch (_type) {
   case ValueTypeCHAR:
     tmp = value;
-    store(_out, tmp, options_.check(Options::MSB) );
+    store(_out, tmp, options_.check_flag(Options::MSB) );
     break;
   default :
     std::cerr << "unsupported conversion type to int: " << _type << std::endl;
@@ -520,7 +520,7 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, unsigned char 
   switch (_type) {
   case ValueTypeUCHAR:
     tmp = value;
-    store(_out, tmp, options_.check(Options::MSB) );
+    store(_out, tmp, options_.check_flag(Options::MSB) );
     break;
   default :
     std::cerr << "unsupported conversion type to int: " << _type << std::endl;
@@ -534,7 +534,7 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, short value) c
   switch (_type) {
   case ValueTypeSHORT:
     tmp = value;
-    store(_out, tmp, options_.check(Options::MSB) );
+    store(_out, tmp, options_.check_flag(Options::MSB) );
     break;
   default :
     std::cerr << "unsupported conversion type to int: " << _type << std::endl;
@@ -548,7 +548,7 @@ void _PLYWriter_::writeValue(ValueType _type, std::ostream& _out, unsigned short
   switch (_type) {
   case ValueTypeUSHORT:
     tmp = value;
-    store(_out, tmp, options_.check(Options::MSB) );
+    store(_out, tmp, options_.check_flag(Options::MSB) );
     break;
   default :
     std::cerr << "unsupported conversion type to int: " << _type << std::endl;

@@ -197,21 +197,21 @@ public:
 
 
   // Check if an option or several options are set.
-  bool check(const value_type _rhs) const
+  bool check_flag(const value_type _rhs) const
   {
     return (flags_ & _rhs)==_rhs;
   }
 
-  bool is_binary()           const { return check(Binary); }
-  bool vertex_has_normal()   const { return check(VertexNormal); }
-  bool vertex_has_color()    const { return check(VertexColor); }
-  bool vertex_has_texcoord() const { return check(VertexTexCoord); }
-  bool edge_has_color()      const { return check(EdgeColor); }
-  bool face_has_normal()     const { return check(FaceNormal); }
-  bool face_has_color()      const { return check(FaceColor); }
-  bool face_has_texcoord()   const { return check(FaceTexCoord); }
-  bool color_has_alpha()     const { return check(ColorAlpha); }
-  bool color_is_float()      const { return check(ColorFloat); }
+  bool is_binary()           const { return check_flag(Binary); }
+  bool vertex_has_normal()   const { return check_flag(VertexNormal); }
+  bool vertex_has_color()    const { return check_flag(VertexColor); }
+  bool vertex_has_texcoord() const { return check_flag(VertexTexCoord); }
+  bool edge_has_color()      const { return check_flag(EdgeColor); }
+  bool face_has_normal()     const { return check_flag(FaceNormal); }
+  bool face_has_color()      const { return check_flag(FaceColor); }
+  bool face_has_texcoord()   const { return check_flag(FaceTexCoord); }
+  bool color_has_alpha()     const { return check_flag(ColorAlpha); }
+  bool color_is_float()      const { return check_flag(ColorFloat); }
 
 
   /// Returns true if _rhs has the same options enabled.

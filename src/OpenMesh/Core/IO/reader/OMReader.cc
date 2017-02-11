@@ -168,7 +168,7 @@ bool _OMReader_::read_ascii(std::istream& /* _is */, BaseImporter& /* _bi */, Op
 
 bool _OMReader_::read_binary(std::istream& _is, BaseImporter& _bi, Options& _opt) const
 {
-  bool swap = _opt.check(Options::Swap) || (Endian::local() == Endian::MSB);
+  bool swap = _opt.check_flag(Options::Swap) || (Endian::local() == Endian::MSB);
 
   // Initialize byte counter
   bytes_ = 0;

@@ -98,7 +98,7 @@ write(const std::string& _filename, BaseExporter& _be, Options _opt, std::stream
   }
 
   // open file
-  std::fstream out(_filename.c_str(), (_opt.check(Options::Binary) ? std::ios_base::binary | std::ios_base::out
+  std::fstream out(_filename.c_str(), (_opt.check_flag(Options::Binary) ? std::ios_base::binary | std::ios_base::out
                                                                    : std::ios_base::out) );
 
   bool result = write(out, _be, _opt, _precision);
@@ -116,15 +116,15 @@ _STLWriter_::
 write(std::ostream& _os, BaseExporter& _be, Options _opt, std::streamsize _precision) const
 {
   // check exporter features
-  if (!check(_be, _opt)) return false;
+  if (!check_flag(_be, _opt)) return false;
 
   // check writer features
-  if (_opt.check(Options::VertexNormal)   ||
-      _opt.check(Options::VertexTexCoord) ||
-      _opt.check(Options::FaceColor))
+  if (_opt.check_flag(Options::VertexNormal)   ||
+      _opt.check_flag(Options::VertexTexCoord) ||
+      _opt.check_flag(Options::FaceColor))
     return false;
 
-  if (!_opt.check(Options::Binary))
+  if (!_opt.check_flag(Options::Binary))
     _os.precision(_precision);
 
   if (_opt & Options::Binary)

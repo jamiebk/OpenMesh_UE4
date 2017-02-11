@@ -47,7 +47,7 @@ bool _VTKWriter_::write(std::ostream& _out, BaseExporter& _be, Options _opt, std
     OpenMesh::Vec4f cA;
 
     // check exporter features
-    if (!check(_be, _opt)) {
+    if (!check_flag(_be, _opt)) {
         return false;
     }
 

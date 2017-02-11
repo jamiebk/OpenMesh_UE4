@@ -243,7 +243,7 @@ decimate(const std::string &_ifname,
    {
      // ---- 0 - For module NormalFlipping one needs face normals
 
-     if ( !opt.check( OpenMesh::IO::Options::FaceNormal ) )
+     if ( !opt.check_flag( OpenMesh::IO::Options::FaceNormal ) )
      {
        if ( !mesh.has_face_normals() )
          mesh.request_face_normals();

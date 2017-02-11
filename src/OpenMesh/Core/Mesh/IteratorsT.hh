@@ -129,7 +129,7 @@ class GenericIteratorT {
          * \deprecated 
          * This function clutters your code. Use dereferencing operators -> and * instead.
          */
-        DEPRECATED("This function clutters your code. Use dereferencing operators -> and * instead.")
+        OPENMESH_DEPRECATED("This function clutters your code. Use dereferencing operators -> and * instead.")
         value_handle handle() const {
             return hnd_;
         }
@@ -140,7 +140,7 @@ class GenericIteratorT {
          * Implicit casts of iterators are unsafe. Use dereferencing operators
          * -> and * instead.
          */
-        DEPRECATED("Implicit casts of iterators are unsafe. Use dereferencing operators -> and * instead.")
+        OPENMESH_DEPRECATED("Implicit casts of iterators are unsafe. Use dereferencing operators -> and * instead.")
         operator value_handle() const {
             return hnd_;
         }

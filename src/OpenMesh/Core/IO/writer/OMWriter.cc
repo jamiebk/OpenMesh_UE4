@@ -138,7 +138,7 @@ _OMWriter_::write(std::ostream& _os, BaseExporter& _be, Options _opt, std::strea
 //   std::clog << "[OMWriter]::write( stream )\n";
 
   // check exporter features
-  if ( !check( _be, _opt ) )
+  if ( !check_flag( _be, _opt ) )
   {
     omerr() << "[OMWriter]: exporter does not support wanted feature!\n";
     return false;
@@ -146,7 +146,7 @@ _OMWriter_::write(std::ostream& _os, BaseExporter& _be, Options _opt, std::strea
 
   // Maybe an ascii version will be implemented in the future.
   // For now, support only a binary format
-  if ( !_opt.check( Options::Binary ) )
+  if ( !_opt.check_flag( Options::Binary ) )
     _opt += Options::Binary;
 
   // Ignore LSB/MSB bit. Always store in LSB (little endian)
@@ -182,7 +182,7 @@ bool _OMWriter_::write_binary(std::ostream& _os, BaseExporter& _be,
 
   size_t bytes = 0;
 
-  bool swap = _opt.check(Options::Swap) || (Endian::local() == Endian::MSB);
+  bool swap = _opt.check_flag(Options::Swap) || (Endian::local() == Endian::MSB);
 
   unsigned int i, nV, nF;
   Vec3f v;
@@ -230,7 +230,7 @@ bool _OMWriter_::write_binary(std::ostream& _os, BaseExporter& _be,
 
 
   // ---------- write vertex normal
-  if (_be.n_vertices() && _opt.check( Options::VertexNormal ))
+  if (_be.n_vertices() && _opt.check_flag( Options::VertexNormal ))
   {
     Vec3f n = _be.normal(VertexHandle(0));
 
@@ -248,7 +248,7 @@ bool _OMWriter_::write_binary(std::ostream& _os, BaseExporter& _be,
   }
 
   // ---------- write vertex color
-  if (_be.n_vertices() && _opt.check( Options::VertexColor ) && _be.has_vertex_colors() )
+  if (_be.n_vertices() && _opt.check_flag( Options::VertexColor ) && _be.has_vertex_colors() )
   {
     Vec3uc c = _be.color(VertexHandle(0));
 
@@ -266,7 +266,7 @@ bool _OMWriter_::write_binary(std::ostream& _os, BaseExporter& _be,
   }
 
   // ---------- write vertex texture coords
-  if (_be.n_vertices() && _opt.check(Options::VertexTexCoord)) {
+  if (_be.n_vertices() && _opt.check_flag(Options::VertexTexCoord)) {
 
     t = _be.texcoord(VertexHandle(0));
 
@@ -318,7 +318,7 @@ bool _OMWriter_::write_binary(std::ostream& _os, BaseExporter& _be,
 
   // ---------- write face normals
 
-  if (_be.n_faces() && _be.has_face_normals() && _opt.check(Options::FaceNormal) )
+  if (_be.n_faces() && _be.has_face_normals() && _opt.check_flag(Options::FaceNormal) )
   {
 #define NEW_STYLE 0
 #if NEW_STYLE
@@ -353,7 +353,7 @@ bool _OMWriter_::write_binary(std::ostream& _os, BaseExporter& _be,
 
   // ---------- write face color
 
-  if (_be.n_faces() && _be.has_face_colors() && _opt.check( Options::FaceColor ))
+  if (_be.n_faces() && _be.has_face_colors() && _opt.check_flag( Options::FaceColor ))
   {
 #define NEW_STYLE 0
 #if NEW_STYLE
