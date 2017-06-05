@@ -90,7 +90,7 @@ class ModEdgeLengthT: public ModBaseT<MeshT> {
 
     /// get edge_length
     float edge_length() const {
-      return edge_length_;
+      return float(edge_length_);
     }
 
     /// set edge_length
