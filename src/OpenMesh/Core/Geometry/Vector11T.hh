@@ -701,6 +701,21 @@ Scalar dot(const VectorT<Scalar, DIM>& _v1, const VectorT<Scalar, DIM>& _v2) {
   return (_v1 | _v2);
 }
 
+template<typename Scalar, int DIM>
+VectorT<Scalar, DIM> normalized(const VectorT<Scalar, DIM>& _v) {
+    return _v.normalized();
+}
+
+template<typename Scalar, int DIM>
+auto length(const VectorT<Scalar, DIM>& _v) {
+    return _v.length();
+}
+
+template<typename Scalar, int DIM>
+VectorT<Scalar, DIM>& vectorize(VectorT<Scalar, DIM>& _v, Scalar scalar) {
+    return _v.vectorize(scalar);
+}
+
 /// \relates OpenMesh::VectorT
 /// symmetric version of the cross product
 template<typename LScalar, typename RScalar, int DIM>
