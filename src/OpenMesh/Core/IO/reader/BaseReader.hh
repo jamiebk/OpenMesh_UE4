@@ -156,7 +156,8 @@ protected:
  * @return trimmed string
  */
 static inline std::string &left_trim(std::string &_string) {
-  _string.erase(_string.begin(), std::find_if(_string.begin(), _string.end(), std::not1(std::function<int(int)>(std::isspace))));
+  _string.erase(_string.begin(), 
+    std::find_if(_string.begin(), _string.end(), [](const char& c){ return !std::isspace(c); }));
   return _string;
 }
 
@@ -168,7 +169,8 @@ static inline std::string &left_trim(std::string &_string) {
  * @return trimmed string
  */
 static inline std::string &right_trim(std::string &_string) {
-  _string.erase(std::find_if(_string.rbegin(), _string.rend(), std::not1(std::function<int(int)>(std::isspace))).base(), _string.end());
+  _string.erase(std::find_if(_string.rbegin(), _string.rend(), 
+    [](const char& c){ return !std::isspace(c); }).base(), _string.end());
   return _string;
 }
 
